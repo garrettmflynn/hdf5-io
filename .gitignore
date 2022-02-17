@@ -1,0 +1,12 @@
+.vscode
+.DS_Store
+node_modules
+_bundles
+docs/docs/reference
+
+# Library Builds
+**/dist
+**.lock
+**.log
+
+*-lock/.j

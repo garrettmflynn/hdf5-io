@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>hdf5-io</title>
+
+    <!-- Browser Import (local) -->
+    <script src="./dist/index.js"></script>
+
+    <!-- Browser Import (remote) -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/hdf5-io"></script> -->
+</head>
+<body>
+    <h3> File Object Keys</h3>
+    <p><strong>Load Status:</strong> <span id="status"></span></p>
+    <ul></ul>
+</body>
+<script type="module">
+    
+// import HDF5IO from './dist/index.esm.js' // ES6 Fallback
+import HDF5IO from 'https://cdn.jsdelivr.net/npm/hdf5-io/dist/index.esm.js'
+import * as hdf5 from "https://cdn.jsdelivr.net/npm/h5wasm@latest/dist/esm/hdf5_hl.js";
+
+const io = new HDF5IO(hdf5, true)
+
+console.log('HDF5IO Instance', io)
+
+const status = document.getElementById('status')
+const list = document.querySelector('ul')
+
+const path = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb'
+io.fetch(path, 'file.nwb', (ratio) => {
+    status.innerHTML = `${ratio * 100}%`
+}).then(file => {
+    console.log('File', file)
+    Object.keys(file).forEach(k => list.innerHTML += `<li>${k}</li>`)
+})
+
+</script>
+</html>
