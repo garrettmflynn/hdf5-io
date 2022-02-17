@@ -1,5 +1,5 @@
 # hdf5-io
-Simple Utility for Reading / Writing HDF5 Files
+Simple utility for reading / writing HDF5 files
 
 ![status](https://img.shields.io/npm/v/hdf5-io) 
 ![downloads](https://img.shields.io/npm/dt/hdf5-io)
@@ -43,4 +43,4 @@ const path = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/mast
 io.fetch(path, 'file.nwb').then(console.log)
 ```
 ## Acknowledgments
-**hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) adjacent to the [**jsnwb**](https;//github.com/brainsatplay/jsnwb) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).
+**hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) at the [**jsnwb**](https;//github.com/brainsatplay/jsnwb) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).
