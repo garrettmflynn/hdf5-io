@@ -7,6 +7,9 @@ Simple utility for reading / writing HDF5 files
 
 > Note: [h5wasm](https://github.com/usnistgov/h5wasm) was difficult to bundle with Rollup, so it's required as an argument to the `HDF5IO` class.
 
+## Description
+**hdf5-io** is a simple utility for handling reading / writing HDF5IO files. As an extension to the **h5wasm** library, it immediately emits and consumes JavaScript objects containing all the relevent data.
+
 ## Getting Started
 
 ``` javascript 
