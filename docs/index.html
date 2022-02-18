@@ -97,6 +97,7 @@ let handleFile = (file) => {
     io.save()
     Object.keys(file).forEach(k => list.innerHTML += `<p><strong>${k}</strong>: ${file[k]}</p>`)
     check.click()
+    console.log(file)
 }
 
 upload.onchange = (ev) => {
