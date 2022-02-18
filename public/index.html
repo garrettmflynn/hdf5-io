@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>hdf5-io</title>
+    <link rel="stylesheet" href="./styles.css">
+
+    <!-- Browser Import (local) -->
+    <!-- <script src="../dist/index.js"></script> -->
+
+    <!-- Browser Import (remote) -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/hdf5-io@latest"></script> -->
+</head>
+<body>
+    <div class="header separate">
+        <div>
+            <h1>hdf5-io</h1>
+            <i>Basic File Loading</i>
+        </div>
+        <div>
+            <button id="download">Download</button>
+        </div>
+    </div>
+    <div id="controls">
+        <input id="input" value="https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb"></input>
+        <button id="submit">Submit</button>
+        <span>OR</span>
+        <input id="upload" type="file"></input>
+    </div>
+    <div id="main">
+        <div>
+            <div class="header separate">
+                <h3>File Info</h3>
+            </div>
+            <div>
+                <h4>Load Status</h4> 
+                <span id="status">0%</span>
+                <h4>Data Origin</h4> 
+                <span id="origin">N/A</span>
+                <h4>File Content</h4>
+                <div id="keys"></div>
+            </div>
+        </div>
+        <div>
+            <div class="header separate">
+                <h3>Filesystem</h3>
+                <button id="check">Check</button>
+            </div>
+            <div>
+                <div id="local"></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script type="module">
+    
+// import HDF5IO from '../dist/index.esm.js' // ES6 Fallback
+import HDF5IO from 'https://cdn.jsdelivr.net/npm/hdf5-io@latest/dist/index.esm.js'
+import * as hdf5 from "https://cdn.jsdelivr.net/npm/h5wasm@latest/dist/esm/hdf5_hl.js";
+
+const io = new HDF5IO(hdf5, undefined, true)
+console.log('HDF5IO Instance', io)
+
+// initialize local filesystem
+// console.log(await io.initFS() )
+io.initFS().then(async res => {
+    console.log(await io.list())
+
+})
+
+
+// setup ui
+const status = document.getElementById('status')
+const origin = document.getElementById('origin')
+const upload = document.getElementById('upload')
+const link = document.getElementById('link')
+const input = document.getElementById('input')
+const submit = document.getElementById('submit')
+const download = document.getElementById('download')
+
+download.onclick = io.download()
+
+const list = document.getElementById('keys')
+const local = document.getElementById('local')
+const check = document.getElementById('check')
+
+check.onclick = () => {
+    local.innerHTML = ''
+    io.list().then(arr => {
+        arr.forEach(name => local.innerHTML += `<p>${name}</p>`)
+    })
+}
+
+// Grab a published NWB File (hdf5 backend) from a remote endpoint
+let handleFile = (file) => {
+    list.innerHTML = ''
+    io.save()
+    Object.keys(file).forEach(k => list.innerHTML += `<p><strong>${k}</strong>: ${file[k]}</p>`)
+    check.click()
+}
+
+upload.onchange = (ev) => {
+    name = ev.target.files[0].name
+    io.upload(ev).then(res => {
+        let file = io.read(name)
+        status.innerHTML = `100%`,
+        origin.innerHTML = 'Upload'
+        handleFile(file)
+    })
+}
+
+submit.onclick = () => io.fetch(
+    input.value, 
+    undefined, 
+    (ratio) => status.innerHTML = `${(ratio * 100).toFixed(2)}%`,
+    (remote) => origin.innerHTML = (remote) ? input.value : 'Local'
+)
+.then(handleFile)
+
+</script>
+</html>
