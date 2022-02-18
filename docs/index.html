@@ -39,8 +39,7 @@
                 <span id="status">0%</span>
                 <h4>Data Origin</h4> 
                 <span id="origin">N/A</span>
-                <h4>File Content</h4>
-                <div id="keys"></div>
+                <div id="contents"></div>
             </div>
         </div>
         <div>
@@ -60,9 +59,12 @@
 // import HDF5IO from '../dist/index.esm.js' // ES6 Fallback
 import HDF5IO from 'https://cdn.jsdelivr.net/npm/hdf5-io@latest/dist/index.esm.js'
 import * as hdf5 from "https://cdn.jsdelivr.net/npm/h5wasm@latest/dist/esm/hdf5_hl.js";
+import * as components from "https://cdn.jsdelivr.net/npm/brainsatplay-components@latest/dist/index.esm.js"
 
+BigInt.prototype.toJSON = function() { return this.toString() }
+const objectEditor = new components.editor.ObjectEditor({target: {}, header: 'File Contents'})
 const io = new HDF5IO(hdf5, undefined, true)
-console.log('HDF5IO Instance', io)
+console.log('HDF5IO Instance', io, components)
 
 // initialize local filesystem
 // console.log(await io.initFS() )
@@ -80,7 +82,8 @@ const download = document.getElementById('download')
 
 download.onclick = io.download()
 
-const list = document.getElementById('keys')
+const contents = document.getElementById('contents')
+contents.insertAdjacentElement('beforeend', objectEditor)
 const local = document.getElementById('local')
 const check = document.getElementById('check')
 
@@ -93,10 +96,10 @@ check.onclick = () => {
 
 // Grab a published NWB File (hdf5 backend) from a remote endpoint
 let handleFile = (file) => {
-    list.innerHTML = ''
     io.save()
-    Object.keys(file).forEach(k => list.innerHTML += `<p><strong>${k}</strong>: ${file[k]}</p>`)
+    // Object.keys(file).forEach(k => list.innerHTML += `<p><strong>${k}</strong>: ${file[k]}</p>`)
     check.click()
+    objectEditor.target = file
     console.log(file)
 }
 

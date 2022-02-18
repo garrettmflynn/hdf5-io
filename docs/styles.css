@@ -81,3 +81,7 @@ body > .header {
 #main p {
     font-size: 80%;
 }
+
+#contents {
+    margin: 25px
+}
