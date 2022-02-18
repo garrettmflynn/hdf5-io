@@ -66,10 +66,7 @@ console.log('HDF5IO Instance', io)
 
 // initialize local filesystem
 // console.log(await io.initFS() )
-io.initFS().then(async res => {
-    console.log(await io.list())
-
-})
+await io.initFS()
 
 
 // setup ui

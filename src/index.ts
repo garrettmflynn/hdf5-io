@@ -11,7 +11,7 @@ export default class HDF5IO {
     file?: any
   }> = new Map();
 
-  _path: string = "/home/hdf5-io"
+  _path: string = "/hdf5-io"
   _debug: boolean;
   _preprocess: Function = (_:any) => {} // Returns modifier for _parse
   _postprocess: Function = (o:any) => o // Returns processed file object
