@@ -22,6 +22,9 @@ export default class HDF5IO {
     this._debug = debug;
     if (options?.preprocess) this._preprocess = options.preprocess
     if (options?.postprocess) this._postprocess = options.postprocess
+    
+    // Ensure BigInto Support
+    BigInt.prototype.toJSON = function() { return this.toString() }
   }
 
   // ---------------------- Local Filestorage Utilities ----------------------
