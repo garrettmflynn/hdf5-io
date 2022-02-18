@@ -21,7 +21,6 @@ import * as hdf5 from "https://cdn.jsdelivr.net/npm/h5wasm@latest/dist/esm/hdf5_
 import HDF5IO from "https://cdn.jsdelivr.net/npm/hdf5-io/dist/index.esm.js";
 
 // Create HDF5IO Arguments
-
 const args = [
 
    // Provide h5wasm module
