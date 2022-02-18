@@ -10,7 +10,7 @@
     <!-- <script src="./dist/index.js"></script> -->
 
     <!-- Browser Import (remote) -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/hdf5-io"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/hdf5-io@latest"></script> -->
 </head>
 <body>
     <h1 style="margin-bottom: 0;">hdf5-io</h1>
@@ -23,7 +23,7 @@
 <script type="module">
     
 // import HDF5IO from './dist/index.esm.js' // ES6 Fallback
-import HDF5IO from 'https://cdn.jsdelivr.net/npm/hdf5-io/dist/index.esm.js'
+import HDF5IO from 'https://cdn.jsdelivr.net/npm/hdf5-io@latest/dist/index.esm.js'
 import * as hdf5 from "https://cdn.jsdelivr.net/npm/h5wasm@latest/dist/esm/hdf5_hl.js";
 
 const io = new HDF5IO(hdf5, undefined, true)
