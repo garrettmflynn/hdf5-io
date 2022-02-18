@@ -40,10 +40,27 @@ const args = [
 
 // Initialize HDF5IO Instance
 const io = new HDF5IO(...args)
+await io.initFS('/hdf5-test') // initialize local filesystem
 
 // Grab a published NWB File (hdf5 backend) from a remote endpoint
 const path = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb'
-io.fetch(path, 'file.nwb').then(console.log)
+
+await io.fetch(
+    path, 
+    undefined, 
+    (ratio) => console.log('Load Status', `${(ratio * 100).toFixed(2)}%`),
+    (remote) => console.log('Origin', (remote) ? path : 'Local')
+).then(file => {
+    console.log(file)
+})
+io.save()
+
+const files = await io.list()
+console.log(files)
+
+const file = await io.read(files[0]) // get specific file from local storage
+console.log(file)
+
 ```
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) at the [**jsnwb**](https;//github.com/brainsatplay/jsnwb) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).

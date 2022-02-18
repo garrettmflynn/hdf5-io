@@ -11,7 +11,7 @@ export default class HDF5IO {
     file?: any
   }> = new Map();
 
-  _path: string = "/home/web_user"
+  _path: string = "/hdf5-io"
   _debug: boolean;
   _preprocess: Function = (_:any) => {} // Returns modifier for _parse
   _postprocess: Function = (o:any) => o // Returns processed file object
@@ -20,53 +20,79 @@ export default class HDF5IO {
   constructor(reader: any, options:ArbitraryObject={}, debug = false) {
     this.reader = reader;
     this._debug = debug;
-    if (options.preprocess) this._preprocess = options.preprocess
-    if (options.postprocess) this._postprocess = options.postprocess
+    if (options?.preprocess) this._preprocess = options.preprocess
+    if (options?.postprocess) this._postprocess = options.postprocess
   }
 
   // ---------------------- Local Filestorage Utilities ----------------------
 
+  // Ensure path has slash at the front
+  _convertPath = (path: string) => {
+    const hasSlash = path[0] === '/'
+    return path = (hasSlash) ? path : `/${path}` // add slash
+  }
+
   initFS = (path:string=this._path) => {
     
-    this.reader.FS.mkdir(path);
-    this.reader.FS.chdir(path);
+    // Note: Can wait for filesystem operations to complete
+    return new Promise(resolve => {
+    this._path = path = this._convertPath(path) // set latest path
+
 
     this._FSReady().then(async () => {
+
+      this.reader.FS.mkdir(path);
+      this.reader.FS.chdir(path);
+
       try {
         // Create a local mount of the IndexedDB filesystem:
         this.reader.FS.mount(this.reader.FS.filesystems.IDBFS, {}, path)
-        if (this._debug) console.log(`Mounted IndexedDB filesystem to ${this._path}`)
+        if (this._debug) console.log(`Mounted IndexedDB filesystem to ${path}`)
         this.syncFS(true, path)
+        resolve(true)
       } catch (e) {
         switch((e as any).errno){
           case 44: 
             console.warn('Path does not exist');
+            resolve(false)
             break;
           case 10:
-            console.warn(`Filesystem already mounted at ${this._path}`);
+            console.warn(`Filesystem already mounted at ${path}`);
             console.log('Active Filesystem', await this.list(path))
+            resolve(true)
             break;
           default: 
             console.warn('Unknown filesystem error', e);
+            resolve(false)
         }
       }
     })
+  })
+
   }
  
   syncFS = (read:boolean= false, path=this._path) => {
-    this._FSReady().then(async () => {
-      if (this._debug && read) console.log(`Pushing all current files in ${this._path} to IndexedDB`)
-      this.reader.FS.syncfs(read, (e?:Error) => {
-        if (e) console.error(e)
-        else {
-          if (this._debug)  {
-            if (read) console.log(`IndexedDB successfully read into ${this._path}!`)
-            else console.log(`All current files in ${this._path} pushed to IndexedDB!`)
+    path = this._convertPath(path)
+
+    return new Promise (resolve => {
+
+      this._FSReady().then(async () => {
+        if (this._debug && read) console.log(`Pushing all current files in ${path} to IndexedDB`)
+        this.reader.FS.syncfs(read, async (e?:Error) => {
+          if (e) {
+            console.error(e)
+            resolve(false)
+          } else {
+            if (this._debug)  {
+              if (read) console.log(`IndexedDB successfully read into ${path}!`)
+              else console.log(`All current files in ${path} pushed to IndexedDB!`, await this.list(path))
+              resolve(true)
+            }
           }
-          this.list(path).then(res => console.log('Active Filesystem', res))
-        }
+        })
       })
     })
+
   }
 
   // ---------------------- New HDF5IO Methods ----------------------
@@ -83,6 +109,8 @@ export default class HDF5IO {
   }
 
   list = async (path:string=this._path) => {
+    path = this._convertPath(path)
+
     await this._FSReady()
     let node;
 
@@ -301,7 +329,7 @@ export default class HDF5IO {
     return o
   }
 
-  save = () => this.syncFS(false)
+  save = (path:string) => this.syncFS(false, path)
 
   write = (o: ArbitraryObject, name = [...this.files.keys()][0]) => {
 
