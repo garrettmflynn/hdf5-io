@@ -23,7 +23,7 @@
     "hdf5",
     "data"
   ],
-  "repository": "https://github.com/brainsatplay/hdf5-io.git",
+  "repository": "https://github.com/garrettmflynn/hdf5-io.git",
   "author": "Garrett Flynn <gflynn@usc.edu>",
   "license": "AGPL-3.0-or-later",
   "private": false,

@@ -62,4 +62,4 @@ console.log(file)
 
 ```
 ## Acknowledgments
-**hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**jsnwb**](https;//github.com/brainsatplay/jsnwb) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).
+**hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).
