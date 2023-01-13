@@ -14,51 +14,37 @@ Simple utility for reading / writing HDF5 files
 
 ``` javascript 
 
-// Import Peer Dependency
-import * as hdf5 from "https://cdn.jsdelivr.net/npm/h5wasm@latest/dist/esm/hdf5_hl.js";
-
 // Import hdf5-io Library
 import HDF5IO from "https://cdn.jsdelivr.net/npm/hdf5-io/dist/index.esm.js";
 
-// Create HDF5IO Arguments
-const args = [
-
-   // Provide h5wasm module
-    hdf5,    
-    
-    // Provide preprocess and postprocess (optional)
+// Initialize HDF5IO instance (all optional parameters)
+const io = new HDF5IO(
     {
-        preprocess: (hdf5File) => hdf5File, // preprocess HDF5 file
-        postprocess: (hdf5Object) => hdf5Object // Modify HDF5 file object before returning
+        preprocess: (hdf5File) => hdf5File,
+        postprocess: (hdf5Object) => hdf5Object,
+        debug: true
     },
     
-    // Toggle Debugging (optional)
-    true 
-    
-]
+)
 
-// Initialize HDF5IO Instance
-const io = new HDF5IO(...args)
 await io.initFS('/hdf5-test') // initialize local filesystem
 
-// Grab a published NWB File (hdf5 backend) from a remote endpoint
-const path = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb'
-
-await io.fetch(
-    path, 
-    undefined, 
+// load a remote file
+const file = await io.fetch(
+     'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb', // URL to get file from
+    'FergusonEtAl2015.nwb',  // Save the file with this name
     (ratio) => console.log('Load Status', `${(ratio * 100).toFixed(2)}%`),
     (remote) => console.log('Origin', (remote) ? path : 'Local')
-).then(file => {
-    console.log(file)
-})
+)
+
+// save the file to local storage
 io.save()
 
+// list files in local storage
 const files = await io.list()
-console.log(files)
 
-const file = await io.read(files[0]) // get specific file from local storage
-console.log(file)
+// get specific file from local storage
+const lsFile = await io.read(filename)
 
 ```
 ## Acknowledgments

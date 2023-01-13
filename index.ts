@@ -1,0 +1,94 @@
+import HDF5IO from "./src";
+
+import * as visualscript from './external/visualscript/index.esm'
+
+// Initialize HDF5IO Instance
+const io = new HDF5IO({
+    preprocess: (file: any) => file, // preprocess HDF5 file
+    postprocess: (object: any) => object, // Modify HDF5 file object before returning
+    debug: true
+})
+
+
+// Default demo 
+const run = async () => {
+    await io.initFS('/hdf5-test') // initialize local filesystem
+
+    // Grab a published NWB File (hdf5 backend) from a remote endpoint
+    const path = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb'
+
+    const filename = 'FergusonEtAl2015.nwb'
+
+    const file = await io.fetch(
+        path, 
+        filename, 
+        {
+            progressCallback: (ratio) => console.log('Load Status', `${(ratio * 100).toFixed(2)}%`),
+            successCallback: (remote) => console.log('Origin', (remote) ? path : 'Local'),
+            // useStreaming: true
+        }
+    )
+
+    console.log('File Fetched!', file)
+
+    io.save()
+
+    const files = await io.list()
+    console.log('Listed Files', files)
+
+    const lsFile = await io.read(filename) // get specific file from local storage
+
+    const equal = JSON.stringify(file) === JSON.stringify(lsFile)
+    console.log('File from local storage is equivalent to original file', equal)
+
+}
+
+run()
+
+// create visual object editor
+let editor = new visualscript.ObjectEditor()
+document.body.insertAdjacentElement('beforeend', editor)
+
+let results_el = document.getElementById("results");
+
+const load = document.getElementById("load")
+const fileUrl = document.getElementById("file_url") as HTMLInputElement
+const size = document.getElementById("LRUSize")  as HTMLInputElement
+const chunk = document.getElementById("requestChunkSize") as HTMLInputElement
+
+let lastURL
+
+if (load && fileUrl && size && chunk) load.onclick = function() {
+    const url = lastURL = fileUrl.value;
+    let LRUSize = parseInt(size.value, 10);
+    let requestChunkSize = parseInt(chunk.value, 10);
+    io.stream(url, { LRUSize, requestChunkSize }).then((file) => {
+        console.log('Setting file', file)
+        editor.set(file)
+    })
+}
+
+const get = document.getElementById("get")
+const pathEl = document.getElementById("path") as HTMLInputElement
+if (get && pathEl) get.onclick = async function() {
+    let path = pathEl.value;
+    const got =  io.files.get(lastURL)
+    if (got) got.file.get(path).then(ondata)
+    else console.error('No files with this url available...')
+}
+
+function ondata (data) {
+    if (results_el) {
+        results_el.innerHTML = "";
+        const result_text = JSON.stringify(data, (k,v) => {
+            if (typeof v === 'bigint') {
+                return v.toString();
+            }
+            else if (ArrayBuffer.isView(v))  {
+                return [...v];
+            }
+            return v;
+        }, 2);
+        results_el.innerText = result_text;
+    }
+}

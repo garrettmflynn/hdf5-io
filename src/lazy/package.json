@@ -1,0 +1,23 @@
+{
+  "name": "hdf5-ui-lazy",
+  "version": "0.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.esm.js",
+  "scripts": {
+    "clean": "rm -fr dist",
+    "start": "tinybuild",
+    "build": "tinybuild build"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.14.28",
+    "h5wasm": "^0.4.1",
+    "mnemonist": "^0.39.0",
+    "typescript-lru-cache": "^1.2.3"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.3"
+  }
+}

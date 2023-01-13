@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="">
+    </head>
+    <body>
+        <div>
+            <label>
+                requestChunkSize <input type="text" id="requestChunkSize" value="1024"/>
+            </label>
+        </div>
+        <div>
+            <label>
+                LRUSize: <input type="text" id="LRUSize" value="100" />
+            </label>
+        </div>
+        <div>
+            <label>File URL:
+                <input type="text" id="file_url" style="width:60em;" value="https://dandiarchive.s3.amazonaws.com/blobs/aff/5f6/aff5f64d-9a69-4ff3-a6fe-13a3f30dca50" />
+            </label>
+            <button id="load">load</button>
+        </div>
+        <div>
+            <label>Path:
+                <input type="text" id="path" style="width:40em;" value="/">
+                <button id="get">get</button>
+            </label>
+        </div>
+        <pre id="results" style="overflow-y:scroll;"></pre>
+        <script src="./dist/index.js"></script>
+    </body>
+</html>
