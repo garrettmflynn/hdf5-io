@@ -215,12 +215,14 @@ arrayBuffer = (file?: any) => {
   ) => {
 
     // Use streaming if applicable
-    const streamObject = await this.stream(url, typeof options.useStreaming === 'object' ? options.useStreaming : undefined,{
-      successCallback:  options.successCallback,
-      progressCallback: options.progressCallback,
-    })
+    if (options.useStreaming) {
+      const streamObject = await this.stream(url, typeof options.useStreaming === 'object' ? options.useStreaming : undefined,{
+        successCallback:  options.successCallback,
+        progressCallback: options.progressCallback,
+      })
 
-    if (streamObject !== null) return streamObject
+      if (streamObject !== null) return streamObject
+    }
 
     //  Get File from Name
     let o = ((options.useLocalStorage) ? this.get(filename, undefined) ?? { nwb: undefined } : {nwb: undefined}) as any

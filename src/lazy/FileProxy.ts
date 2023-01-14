@@ -56,43 +56,56 @@ class FileProxy {
 
         if (raw.type === 'error') throw new Error(raw.value)
 
-        let targets = {
-            file: this.file
-        }
+
+        let target = this.file
 
         const split = path.split('/').filter(v => !!v)
         const key = split.pop()
         for (let str of split) {
-            for (let key in targets) targets[key] = await targets[key][str]
+            target = await target[str]
         }
 
         // Create entry in private file
+        const parent = target
         if (key) {
-            const desc = Object.getOwnPropertyDescriptor(targets.file, key)
-            if (!desc || desc.get) Object.defineProperty(targets.file, key, {value: {}, enumerable: true}) // redefine getter with empty object that will be filled now
-            targets.file = targets.file[key]
+            const desc = Object.getOwnPropertyDescriptor(target, key)
+            if (!desc || desc.get) Object.defineProperty(target, key, {value: raw.value ?? {}, enumerable: true, configurable: true}) // redefine getter with empty object that will be filled now
+            target = target[key]
         }
+
 
         // Proxy private file properties (which are always resolved) 
         if (raw.attrs) {
             for (let key in raw.attrs) {
-                Object.defineProperty(targets.file, key, {
-                    get: () => raw.attrs[key].value,
-                    enumerable: true,
-                    configurable: true // Can be redeclared
-                })
+
+                // Make an object with a value key
+                if (!target || typeof target !== 'object') {
+                    console.log('Defining', path, key, target)
+                    Object.defineProperty(parent, key, {value: {value: target}, enumerable: true, configurable: true})
+                    target = parent[key]
+                }
+
+                if (!Array.isArray(target)){
+                
+                    Object.defineProperty(target, key, {
+                        get: () => raw.attrs[key].value,
+                        enumerable: true,
+                        configurable: true // Can be redeclared
+                    }) 
+                }
+                
             }
         }
         
         if (raw.children) {
             for (let key of raw.children) {
-                Object.defineProperty(targets.file, key, {
+                Object.defineProperty(target, key, {
                     get: () => {
-                        const desc = Object.getOwnPropertyDescriptor(targets.file, key)
+                        const desc = Object.getOwnPropertyDescriptor(target, key)
                         if (!desc || desc.get) {
                             const updatedPath = (path && path !== '/') ? `${path}/${key}` : key
                             return this.get(updatedPath) // Replaces the new value for you
-                        } else return targets.file[key] // Just get the value
+                        } else return target[key] // Just get the value
                     },
                     enumerable: true,
                     configurable: true // Can be redeclared
@@ -101,7 +114,7 @@ class FileProxy {
         }
 
         // return raw
-        return targets.file
+        return target
     }
 
     load = async (url?: string, options?: FileProxyOptions, callbacks?: Callbacks) => {
