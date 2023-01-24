@@ -4,7 +4,6 @@ import * as visualscript from './external/visualscript/index.esm'
 
 // Initialize HDF5IO Instance
 const io = new HDF5IO({
-    preprocess: (file: any) => file, // preprocess HDF5 file
     postprocess: (object: any) => object, // Modify HDF5 file object before returning
     debug: true
 })

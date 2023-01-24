@@ -65,6 +65,7 @@ self.onmessage = async function (event) {
 
 
             if (item instanceof Group) {
+                // console.log('Got Group', path, item, attrs, item.keys())
                 newPayload = {
                     type: item.type,
                     attrs,
@@ -73,18 +74,16 @@ self.onmessage = async function (event) {
             } else if (item instanceof Dataset) {
 
                 const value = (payload.slice) ? item.slice(payload.slice) : item.value;
+
+                // console.log('Got Dataset', path, item, attrs, value)
+
                 newPayload = {
                     type: item.type,
                     attrs,
                     value
                 }
             } else if (item instanceof BrokenSoftLink || item instanceof ExternalLink) newPayload = item
-            else {
-                newPayload = {
-                    type: "error",
-                    value: `item ${path} not found`,
-                }
-            }
+            else newPayload = { type: "error", value: `item ${path} not found` }
 
             self.postMessage({[global.id]: id, payload: newPayload})
         }

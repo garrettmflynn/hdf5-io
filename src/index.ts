@@ -6,7 +6,6 @@ export type ArbitraryObject = {[x:string]: any}
 
 export type IOInput = {
   debug?: boolean,
-  preprocess?: Function,
   postprocess?: Function,
   case?: caseUtils.CaseType
 }
@@ -32,7 +31,6 @@ export default class HDF5IO {
 
   _path: string = "/hdf5-io"
   _debug: boolean;
-  _preprocess: Function = (_:any) => {} // Returns modifier for _parse
   _postprocess: Function = (o:any) => o // Returns processed file object
 
   _extension: string = 'hdf5'
@@ -43,7 +41,6 @@ export default class HDF5IO {
   constructor(options:IOInput={}) {
     this.reader = h5wasm;
     this._debug = options.debug ?? false;
-    if (options?.preprocess) this._preprocess = options.preprocess
     if (options?.postprocess) this._postprocess = options.postprocess
     if (options?.case) this.case = options.case
 
@@ -207,12 +204,24 @@ arrayBuffer = (file?: any) => {
       return proxy.load()
   }
 
+  resolveStream = async (o:any) => {
+      for (let key in o) {
+        const res = await o[key]
+        if (res instanceof Object) await this.resolveStream(res)
+      }
+      return o
+    }
+
   // Fetch HDF5 Files from a URL
   fetch = async (
     url: string, 
     filename: string = 'default.hdf5', 
     options: FetchOptions = {}
   ) => {
+
+    //  Get File from Name
+    let o = ((options.useLocalStorage) ? this.get(filename, undefined) ?? { nwb: undefined } : {nwb: undefined}) as any
+
 
     // Use streaming if applicable
     if (options.useStreaming) {
@@ -221,11 +230,15 @@ arrayBuffer = (file?: any) => {
         progressCallback: options.progressCallback,
       })
 
-      if (streamObject !== null) return streamObject
-    }
+      if (streamObject !== null) {
 
-    //  Get File from Name
-    let o = ((options.useLocalStorage) ? this.get(filename, undefined) ?? { nwb: undefined } : {nwb: undefined}) as any
+        console.warn(`Streaming the specification for ${filename}`)
+        const specifications = await streamObject.specifications
+        await this.resolveStream(specifications)
+        o.file = this._postprocess(streamObject)//, false)
+        return o.file
+      }
+    }
 
     // Only Fetch if NO Locally Cached Version
     if (!o.file) {
@@ -279,7 +292,7 @@ arrayBuffer = (file?: any) => {
       await this.#write(filename, ab)
       o.file = this.read(filename)
 
-    } else if (options.successCallback) options.successCallback(false)
+    } else if (options.successCallback) options.successCallback(false, url)
     return o.file
   }
 
@@ -293,8 +306,9 @@ arrayBuffer = (file?: any) => {
       return true
   }
 
-  // Parse File Information with API Knowledge
-  parse = (o: any, aggregator: { [x: string]: any } = {}, key: string, modifier: ArbitraryObject = {}, keepDatasets:boolean = true) => {
+  // Parse File Information with HDF5 Knowledge
+  // NOTE: This is replicated in the streaming version...so there are two sets of code doing this...
+  parse = (o: any, aggregator: { [x: string]: any } = {}, key: string, keepDatasets:boolean = true) => {
 
           if (o){
 
@@ -325,7 +339,7 @@ arrayBuffer = (file?: any) => {
             keys.forEach((k: string) => {
               const group = o.get(k)
               aggregator[key][k] = {}
-              aggregator[key][k] = this.parse(group, aggregator[key], k, modifier, keepDatasets)
+              aggregator[key][k] = this.parse(group, aggregator[key], k, keepDatasets)
             })
           }
 
@@ -343,16 +357,13 @@ arrayBuffer = (file?: any) => {
 
       const tick = performance.now()
 
-      const modifier = this._preprocess(file)
-
+      // Parse the data using the modifier
       let innerKey = 'res'
       let aggregator:ArbitraryObject = {[innerKey]: {}}
-      this.parse(file.reader, aggregator, innerKey, modifier)
+      this.parse(file.reader, aggregator, innerKey)
 
-      // Postprocess File
+      // Postprocess the data using an arbitrary function
       file.file = this._postprocess(aggregator[innerKey])
-
-      // if (!file.write) this.close()
 
       const tock = performance.now()
       if (this._debug) console.log(`[hdf5-io]: Read file in ${tock - tick} ms`)
@@ -411,7 +422,7 @@ arrayBuffer = (file?: any) => {
         const group = (key) ? file.reader.get(key) : file.reader
         for (let k in o) {
 
-          const snakeKey = caseUtils.set(k, this.case)
+          const snakeKey = this.case ? caseUtils.set(k, this.case) : k // Keep original key if not set
 
           const newKey = `${(key) ? `${key}/` : ''}${snakeKey}` // ASSUMPTION: Spec uses snake case
 

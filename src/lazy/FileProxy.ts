@@ -7,7 +7,7 @@ export type FileProxyOptions = {
     requestChunkSize?: number
 }
 
-// const isPromise = (o) => typeof o === 'object' && typeof o.then === 'function'
+const isPromise = (o) => typeof o === 'object' && typeof o.then === 'function'
 
 
 const defaultRequestChunkSize = 1024
@@ -60,17 +60,34 @@ class FileProxy {
         let target = this.file
 
         const split = path.split('/').filter(v => !!v)
-        const key = split.pop()
-        for (let str of split) {
-            target = await target[str]
-        }
+        const key = split.pop() as string
+        for (let str of split) target = await target[str]
 
         // Create entry in private file
         const parent = target
+        
+        let onPropertyResolve
+
         if (key) {
-            const desc = Object.getOwnPropertyDescriptor(target, key)
-            if (!desc || desc.get) Object.defineProperty(target, key, {value: raw.value ?? {}, enumerable: true, configurable: true}) // redefine getter with empty object that will be filled now
-            target = target[key]
+            const desc = Object.getOwnPropertyDescriptor(parent, key)
+            if (!desc || desc.get) {
+                let value = raw.value ?? {}
+                onPropertyResolve = parent.__onPropertyResolved
+
+                // Ensure you will capture attributes on values
+                if (raw.attrs && Object.keys(raw.attrs).length > 0) {
+                    let updatedVal = value
+                    if (typeof value === 'number') updatedVal = new Number(value)
+                    else if (typeof value === 'string') updatedVal = new String(value)
+                    else if (typeof value === 'boolean') updatedVal = new Boolean(value)
+                    value = updatedVal
+                //    if (updatedVal !== value) console.warn('Requires conversion to an object to hold metadata', path, updatedVal, value, raw.attrs)
+                }
+
+                Object.defineProperty(parent, key, {value, enumerable: true, configurable: true}) // redefine getter with empty object that will be filled now
+            } else return target[key]
+
+            target = await target[key]
         }
 
 
@@ -80,13 +97,11 @@ class FileProxy {
 
                 // Make an object with a value key
                 if (!target || typeof target !== 'object') {
-                    console.log('Defining', path, key, target)
                     Object.defineProperty(parent, key, {value: {value: target}, enumerable: true, configurable: true})
                     target = parent[key]
                 }
 
                 if (!Array.isArray(target)){
-                
                     Object.defineProperty(target, key, {
                         get: () => raw.attrs[key].value,
                         enumerable: true,
@@ -104,7 +119,8 @@ class FileProxy {
                         const desc = Object.getOwnPropertyDescriptor(target, key)
                         if (!desc || desc.get) {
                             const updatedPath = (path && path !== '/') ? `${path}/${key}` : key
-                            return this.get(updatedPath) // Replaces the new value for you
+                            const res = this.get(updatedPath) // Replaces the new value for you
+                            return res
                         } else return target[key] // Just get the value
                     },
                     enumerable: true,
@@ -113,8 +129,12 @@ class FileProxy {
             }
         }
 
-        // return raw
-        return target
+        // Resolve the property 
+        if (onPropertyResolve) { 
+            const res = await onPropertyResolve(key, target)
+            return res
+        }
+        else return target
     }
 
     load = async (url?: string, options?: FileProxyOptions, callbacks?: Callbacks) => {

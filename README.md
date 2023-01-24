@@ -20,7 +20,6 @@ import HDF5IO from "https://cdn.jsdelivr.net/npm/hdf5-io/dist/index.esm.js";
 // Initialize HDF5IO instance (all optional parameters)
 const io = new HDF5IO(
     {
-        preprocess: (hdf5File) => hdf5File,
         postprocess: (hdf5Object) => hdf5Object,
         debug: true
     },
