@@ -1,3 +1,4 @@
+import { isStreaming } from '../globals'
 import { Callbacks } from '../types'
 import workerURI from './adv.worker'
 import * as global from './global'
@@ -6,8 +7,6 @@ export type FileProxyOptions = {
     LRUSize?: number
     requestChunkSize?: number
 }
-
-const isPromise = (o) => typeof o === 'object' && typeof o.then === 'function'
 
 
 const defaultRequestChunkSize = 1024
@@ -32,7 +31,7 @@ class FileProxy {
         if (window && window.Worker) {
             this.worker = new Worker(workerURI) 
             this.worker.addEventListener("message", (event) => {
-                const info = this.#toResolve[event.data[global.id]]
+                const info = this.#toResolve[event.data[global.lazyFileProxyId]]
                 if (info) info.resolve(event.data.payload)
                 else if (event.data.type === 'progress' && this.callbacks.progressCallback) this.callbacks.progressCallback(event.data.payload.ratio, event.data.payload.length, event.data.payload.id)
                 else if (event.data.type === 'success' && this.callbacks.successCallback) this.callbacks.successCallback(event.data.payload.fromRemote, event.data.payload.id)
@@ -72,7 +71,7 @@ class FileProxy {
             const desc = Object.getOwnPropertyDescriptor(parent, key)
             if (!desc || desc.get) {
                 let value = raw.value ?? {}
-                onPropertyResolve = parent.__onPropertyResolved
+                onPropertyResolve = parent[global.onPropertyResolved]
 
                 // Ensure you will capture attributes on values
                 if (raw.attrs && Object.keys(raw.attrs).length > 0) {
@@ -89,6 +88,9 @@ class FileProxy {
 
             target = await target[key]
         }
+
+        // Add notice of streaming
+        if (typeof target === 'object') Object.defineProperty(target, isStreaming, {value: true})
 
 
         // Proxy private file properties (which are always resolved) 
@@ -150,7 +152,7 @@ class FileProxy {
         return new Promise(resolve => {
             const id = Math.random().toString(36).substring(7);
             this.#toResolve[id] = {resolve, timestamp: Date.now()}
-            o[global.id] = id
+            o[global.lazyFileProxyId] = id
             this.worker.postMessage(o);
         }) 
     }

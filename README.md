@@ -46,5 +46,26 @@ const files = await io.list()
 const lsFile = await io.read(filename)
 
 ```
+
+## Conventions
+### Datasets
+When reading an HDF5 file, datasets are transformed into JavaScript Objects:
+```javascript
+const datasetValue = 1 // From HDF5 file
+const output = new Number(datasetValue)
+```
+
+Similarly, datasets must be Objects when written to the file:
+```javascript
+const object = {
+    dataset: new Number(1),
+    attribute: 1
+}
+```
+
+## Issues
+1. Groups may also have attributes. How do you determine what is a dataset and what is an attribute without the **specification** provided by NWB files and others?
+2. Is it okay that `.specloc` is not transferred when rewritten?
+
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).

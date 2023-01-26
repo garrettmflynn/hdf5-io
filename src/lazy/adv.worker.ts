@@ -18,13 +18,13 @@ function getAttr (key: string, parent: {[x:string]: any}) {
 
 self.onmessage = async function (event) {
     const { action, payload } = event.data;
-    const id = event.data[global.id]
+    const id = event.data[global.lazyFileProxyId]
 
     if (action === "load") {
         const url = payload?.url;
         if (!url) {
             console.error('No url provided')
-            self.postMessage({[global.id]: id, payload: false})
+            self.postMessage({[global.lazyFileProxyId]: id, payload: false})
         } else {
             const requestChunkSize = payload?.requestChunkSize ?? 1024 * 1024;
             const LRUSize = payload?.LRUSize ?? 50;
@@ -34,18 +34,18 @@ self.onmessage = async function (event) {
                 requestChunkSize,
                 LRUSize,
                 callbacks: {
-                    progressCallback: (ratio, length, id) => {
-                        self.postMessage({[global.id]: id, type: 'progress', payload: {ratio, length, id}})
+                    progressCallback: (ratio, length, identifier) => {
+                        self.postMessage({[global.lazyFileProxyId]: id, type: 'progress', payload: {ratio, length, id: identifier}})
                     },
                     successCallback: () => {
-                        self.postMessage({[global.id]: id, type: 'success', payload: true})
+                        self.postMessage({[global.lazyFileProxyId]: id, type: 'success', payload: true})
                     }
                 }
             }
             //hdf5.FS.createLazyFile('/', "current.h5", DEMO_FILEPATH, true, false);
             await createLazyFile(FS, '/', 'current.h5', true, false, config);
             file = new File("current.h5");
-            self.postMessage({[global.id]: id, payload: true})
+            self.postMessage({[global.lazyFileProxyId]: id, payload: true})
         }
     }
     else if (action === "get") {
@@ -85,7 +85,7 @@ self.onmessage = async function (event) {
             } else if (item instanceof BrokenSoftLink || item instanceof ExternalLink) newPayload = item
             else newPayload = { type: "error", value: `item ${path} not found` }
 
-            self.postMessage({[global.id]: id, payload: newPayload})
+            self.postMessage({[global.lazyFileProxyId]: id, payload: newPayload})
         }
     }
   };
