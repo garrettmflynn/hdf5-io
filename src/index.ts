@@ -1,6 +1,6 @@
 import * as h5 from "h5wasm";
 import  { ACCESS_MODES, Dataset, Group } from "h5wasm"
-import { isDataset, isDataset, isDataset, isGroup, isStreaming } from "./globals";
+import { isDataset, isGroup, isStreaming } from "./globals";
 
 import FileProxy, { FileProxyOptions } from "./lazy/FileProxy";
 import { Callbacks } from "./types";
@@ -481,7 +481,13 @@ arrayBuffer = (file?: any) => {
       const tick = performance.now()
 
       // Write Arbitrary Object to HDF5 File
-      let writeObject = (o: any, key?: String, parent:  Group | Dataset | h5.File = resolved.reader, keys: string[] = Object.keys(o)) => {
+      let writeObject = (
+        o: any, 
+        key?: String, 
+        parent:  Group | Dataset | h5.File = resolved.reader, 
+        keys: string[] = Object.keys(o) // NOTE: This needs to grab non-enumerable properties originally on the spec
+        // keys: string[] = getAllPropertyNames(o))
+      ) => {
         keys.forEach(k => {
 
           const snakeKey = this.case ? caseUtils.set(k, this.case) : k // Keep original key if not set
@@ -516,7 +522,10 @@ arrayBuffer = (file?: any) => {
                 writeObject(value, newKey, group)
                 break;
               case 'attribute':
-                if (value) parent.create_attribute(snakeKey, value);
+                if (value) {
+                  if (typeof value === 'object' && !value.constructor) break; // Null object
+                  parent.create_attribute(snakeKey, 'valueOf' in value ? value.valueOf() : value);
+                }
                 break;
               default:
                 console.error('Ignore', k, value)
