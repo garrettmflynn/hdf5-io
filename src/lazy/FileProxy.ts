@@ -55,7 +55,6 @@ class FileProxy {
 
         if (raw.type === 'error') throw new Error(raw.value)
 
-
         let target = this.file
 
         const split = path.split('/').filter(v => !!v)

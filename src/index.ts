@@ -38,7 +38,7 @@ type ResolvedFileObject = FileObject & {reader: h5.File}
 
 function isNumeric(str: any) {
   if (typeof str != "string") return false // we only process strings!  
-  return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+  return !isNaN(str as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
          !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
@@ -58,10 +58,10 @@ export default class HDF5IO {
   constructor(options:IOInput={}) {
     this._debug = options.debug ?? false;
     if (options?.postprocess) this.__postprocess = options.postprocess
-    if (options?.case) this.case = options.case
+    if (options?.case) this.case = options.case as caseUtils.CaseType
 
     // Ensure BigInto Support
-    BigInt.prototype.toJSON = function() { return this.toString() }
+    (BigInt.prototype as any).toJSON = function() { return this.toString() }
   }
 
   // ---------------------- Local Filestorage Utilities ----------------------
@@ -81,12 +81,14 @@ export default class HDF5IO {
 
     h5.ready.then(async () => {
 
-      h5.FS.mkdir(path);
-      h5.FS.chdir(path);
+      const fs = h5.FS as any // Resolved filesystem type
+
+      fs.mkdir(path);
+      fs.chdir(path);
 
       try {
         // Create a local mount of the IndexedDB filesystem:
-        h5.FS.mount(h5.FS.filesystems.IDBFS, {}, path)
+        fs.mount(fs.filesystems.IDBFS, {}, path)
         if (this._debug) console.log(`[hdf5-io]: Mounted IndexedDB filesystem to ${path}`)
         this.syncFS(true, path)
         resolve(true)
@@ -114,11 +116,11 @@ export default class HDF5IO {
   syncFS = (read:boolean= false, path=this._path) => {
     path = this._convertPath(path)
 
-    return new Promise(resolve => {
-
-      h5.ready.then(async () => {
+    return new Promise(async resolve => {
+      await h5.ready
+      const fs = h5.FS as any // Resolved filesystem type
         if (this._debug && !read) console.log(`[hdf5-io]: Pushing all current files in ${path} to IndexedDB`)
-        h5.FS.syncfs(read, async (e?:Error) => {
+        fs.syncfs(read, async (e?:Error) => {
           if (e) {
             console.error(e)
             resolve(false)
@@ -131,7 +133,6 @@ export default class HDF5IO {
             resolve(true)
           }
         })
-      })
     })
 
   }
@@ -153,9 +154,10 @@ export default class HDF5IO {
     path = this._convertPath(path)
 
     await h5.ready
+    const fs = h5.FS as any // Resolved filesystem type
     let node;
 
-    try {node = (h5.FS.lookupPath(path))?.node} 
+    try {node = (fs.lookupPath(path))?.node} 
     catch (e) {console.warn(e)}
 
     if (node?.isFolder && node.contents) {
@@ -177,8 +179,10 @@ blob = (file?: any) => {
   }
 }
 
+// NOTE: Only called after resolution anyways...
 arrayBuffer = (file?: any) => {
-    return h5.FS.readFile(file.name)
+    const fs = h5.FS as any // Resolved filesystem type
+    return fs.readFile(file.name)
 }
 
   // Allow Download of NWB-Formatted HDF5 Files from the Browser
@@ -322,7 +326,8 @@ arrayBuffer = (file?: any) => {
   #write = async (name: string, ab: ArrayBuffer) => {
       const tick = performance.now()
       await h5.ready
-      h5.FS.writeFile(name, new Uint8Array(ab));
+      const fs = h5.FS as any
+      fs.writeFile(name, new Uint8Array(ab));
       const tock = performance.now()
       if (this._debug) console.log(`[hdf5-io]: Wrote raw file in ${tock - tick} ms`)
       return true
@@ -513,7 +518,7 @@ arrayBuffer = (file?: any) => {
               case 'dataset':
                 const p1 = parent as Group || h5.File
                 const res = value.valueOf()
-                const dataset = p1.create_dataset(snakeKey, res);
+                const dataset = (p1 as any).create_dataset(snakeKey, res);
                 const keys = Object.keys(value)
                 writeObject(value, newKey, dataset, keys.filter(k => !isNumeric(k)))
                 break;
@@ -524,7 +529,7 @@ arrayBuffer = (file?: any) => {
               case 'attribute':
                 if (value) {
                   if (typeof value === 'object' && !value.constructor) break; // Null object
-                  parent.create_attribute(snakeKey, 'valueOf' in value ? value.valueOf() : value);
+                  parent.create_attribute(snakeKey, value?.valueOf ? value.valueOf() : value); // NOTE: This is writing the "name" property so isn't conforming to the spec
                 }
                 break;
               default:

@@ -59,8 +59,9 @@ self.onmessage = async function (event) {
 
             // Transfer value from attrs
             let attrs = {};
-            if (item?.attrs) {
-                for (let key in item.attrs) attrs[key] = getAttr(key, item.attrs)
+            const possiblyAttrs = (item as any)?.attrs;
+            if (possiblyAttrs) {
+                for (let key in possiblyAttrs) attrs[key] = getAttr(key, possiblyAttrs)
             }
 
 
@@ -82,7 +83,10 @@ self.onmessage = async function (event) {
                     attrs,
                     value
                 }
-            } else if (item instanceof BrokenSoftLink || item instanceof ExternalLink) newPayload = item
+            } else if (item instanceof BrokenSoftLink || item instanceof ExternalLink) {
+                console.error('Not processing', item.constructor.name, item)
+                newPayload = item
+            }
             else newPayload = { type: "error", value: `item ${path} not found` }
 
             self.postMessage({[global.lazyFileProxyId]: id, payload: newPayload})
