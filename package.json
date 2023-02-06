@@ -1,6 +1,6 @@
 {
   "name": "hdf5-io",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Simple utility for reading / writing HDF5 files",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -23,12 +23,9 @@
   "repository": "https://github.com/garrettmflynn/hdf5-io.git",
   "author": "Garrett Flynn <gflynn@usc.edu>",
   "license": "AGPL-3.0-or-later",
-  "private": false,
-  "dependencies": {
-    "hdf5-io-lazy": "./src/lazy"
-  },
   "devDependencies": {
     "h5wasm": "0.4.9",
+    "hdf5-io-lazy": "./src/lazy",
     "tinybuild": "0.3.192",
     "typescript": "4.6.4"
   }
