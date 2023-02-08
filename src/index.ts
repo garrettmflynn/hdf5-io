@@ -232,7 +232,7 @@ arrayBuffer = (file?: any) => {
   download = (name: string, file?: any, extension: string = this._extension) => {
 
 
-    if (!file) file = (name) ? this.files.get(name) : [...this.files.values()][0]
+    if (!file && name) file = this.files.get(name)
     if (file) {
 
       if (file.url) throw new Error('[hdf5-io]: Cannot download streaming object to file')
@@ -444,7 +444,7 @@ arrayBuffer = (file?: any) => {
 
   // ---------------------- Core HDF5IO Methods ----------------------
   read = (
-      name: string | null | undefined = [...this.files.keys()][0], 
+      name?: string | null, 
       options?: Options = {}
     ) => {
 
@@ -495,8 +495,9 @@ arrayBuffer = (file?: any) => {
   }
 
   // Get File by Name
-  get = (name: string = [...this.files.keys()][0], mode?: keyof (typeof ACCESS_MODES), useLocalStorage: Options['useLocalStorage'] = true ) => {
+  get = (name: string, mode?: keyof (typeof ACCESS_MODES), useLocalStorage: Options['useLocalStorage'] = true ) => {
 
+    if (!name) throw new Error(`[hdf5-io]: Invalid file name ${name}`)
     let o = this.files.get(name)
 
     if (!o) {
@@ -535,8 +536,9 @@ arrayBuffer = (file?: any) => {
     this.syncFS(false, path)
   }
 
-  write = (o: ArbitraryObject, name = [...this.files.keys()][0]) => {
+  write = (o: ArbitraryObject, name: string) => {
 
+    if (!name) throw new Error(`[hdf5-io]: Invalid file name ${name}`)
     if (o[isStreaming]) throw new Error('[hdf5-io]: Cannot write streaming object to file')
 
     let file = this.get(name, 'w')
@@ -608,11 +610,14 @@ arrayBuffer = (file?: any) => {
     } else console.error(`[hdf5-io]: Failed to write file:`, name)
   }
 
-  close = (name = [...this.files.keys()][0]) => {
-    const fileObj = this.files.get(name)
-    if (fileObj) {
-      if (fileObj.reader) fileObj.reader.close()
-      this.files.delete(name)
+  close = (name?: string) => {
+    if (!name) this.files.forEach((v, k) => this.close(k)) // Close all files
+    else {
+      const fileObj = this.files.get(name)
+      if (fileObj) {
+        if (fileObj.reader) fileObj.reader.close()
+        this.files.delete(name)
+      }
     }
   }
 }
