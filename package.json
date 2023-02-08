@@ -1,6 +1,6 @@
 {
   "name": "hdf5-io",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Simple utility for reading / writing HDF5 files",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
