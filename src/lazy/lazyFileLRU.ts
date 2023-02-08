@@ -267,7 +267,6 @@ export class LazyUint8Array {
         console.warn('Falling back to aborted GET')
         const controller = new AbortController();
         const signal = controller.signal;
-  
         const response = await fetch(url, { signal }).catch(this.#ready.reject)
         datalength = Number(response.headers.get("Content-length"));
         hasByteServing = response.headers.get("Accept-Ranges") === "bytes";

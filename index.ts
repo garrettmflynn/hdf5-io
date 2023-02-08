@@ -9,40 +9,51 @@ const io = new HDF5IO({
 })
 
 
-// Default demo 
-const run = async () => {
-    await io.initFS('/hdf5-test') // initialize local filesystem
-
-    // Grab a published NWB File (hdf5 backend) from a remote endpoint
-    const path = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb'
-
-    const filename = 'FergusonEtAl2015.nwb'
-
-    const file = await io.fetch(
-        path, 
-        filename, 
-        {
-            progressCallback: (ratio) => console.log('Load Status', `${(ratio * 100).toFixed(2)}%`),
-            successCallback: (remote) => console.log('Origin', (remote) ? path : 'Local'),
-            // useStreaming: true
-        }
-    )
-
-    console.log('File Fetched!', file)
-
-    io.save()
-
-    const files = await io.list()
-    console.log('Listed Files', files)
-
-    const lsFile = await io.read(filename) // get specific file from local storage
-
-    const equal = JSON.stringify(file) === JSON.stringify(lsFile)
-    console.log('File from local storage is equivalent to original file', equal)
-
+const uploadButton = document.getElementById('upload') as HTMLButtonElement
+uploadButton.onclick = async () => {
+    const files = await io.read()
+    console.error('Files Uploaded', files)
 }
 
-run()
+const url = 'https://api.dandiarchive.org/api/assets/29ba1aaf-9091-469a-b331-6b8ab818b5a6/download/'
+io.read(url, { useStreaming: true }).then((file) => {
+    console.log('File from DANDI', file)
+})
+
+// // Default demo 
+// const run = async () => {
+//     await io.initFS('/hdf5-test') // initialize local filesystem
+
+//     // Grab a published NWB File (hdf5 backend) from a remote endpoint
+//     const path = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015.nwb'
+
+//     const filename = 'FergusonEtAl2015.nwb'
+
+//     const file = await io.fetch(
+//         path, 
+//         filename, 
+//         {
+//             progressCallback: (ratio) => console.log('Load Status', `${(ratio * 100).toFixed(2)}%`),
+//             successCallback: (remote) => console.log('Origin', (remote) ? path : 'Local'),
+//             // useStreaming: true
+//         }
+//     )
+
+//     console.log('File Fetched!', file)
+
+//     io.save()
+
+//     const files = await io.list()
+//     console.log('Listed Files', files)
+
+//     const lsFile = await io.read(filename) // get specific file from local storage
+
+//     const equal = JSON.stringify(file) === JSON.stringify(lsFile)
+//     console.log('File from local storage is equivalent to original file', equal)
+
+// }
+
+// run()
 
 // create visual object editor
 let editor = new visualscript.ObjectEditor()

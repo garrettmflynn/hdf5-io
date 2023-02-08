@@ -6,7 +6,7 @@
       "outDir": "dist/", /* Redirect output structure to the directory. */
       "module": "ES2015", /* Specify module code generation: 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */
       "declaration": true, /* Generates corresponding '.d.ts' file. */
-      "lib": ["dom", "es5"],
+      "lib": ["dom", "ES2015"],
       "importHelpers": true, /* Import emit helpers from 'tslib'. */
       "pretty": true, /* Stylize errors and messages using color and context (experimental). */
       "jsx": "react", /* Specify JSX code generation: 'preserve', 'react-native', or 'react'. */
