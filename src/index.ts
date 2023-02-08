@@ -456,9 +456,7 @@ arrayBuffer = (file?: any) => {
       try { isRemote = new URL(name) } catch {}
       if (isRemote) return this.fetch(name, options.filename, options)
 
-    // let file = this.get(name, 'r', useLocalStorage)
-    const useLocalStorage  = options?.useLocalStorage ?? true
-    let file = this.get(name, 'r', useLocalStorage)
+    let file = this.get(name, 'r', options?.useLocalStorage)
 
     if (Number(file?.reader?.file_id) != -1) {
 
