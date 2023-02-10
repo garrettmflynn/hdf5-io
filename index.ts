@@ -8,17 +8,31 @@ const io = new HDF5IO({
     debug: true
 })
 
-
+let file: any;
 const uploadButton = document.getElementById('upload') as HTMLButtonElement
-uploadButton.onclick = async () => {
-    const files = await io.read()
-    console.error('Files Uploaded', files)
+uploadButton.onclick = async () => file = await io.read()
+
+const downloadButton = document.getElementById('download') as HTMLButtonElement
+downloadButton.onclick = async () => {
+    if (file){
+        try {
+            await io.write(file) // Catch memory overloads
+        } catch (e) {
+            console.warn(`Write error (${e.message}). Trying again with a limit on the number of nested groups...`)
+            try {
+                await io.write(file) // Catch memory overloads
+            } catch (e) {
+                console.error(`Write failed...`)
+            }
+        }
+        await io.download(file)
+    }
 }
 
-const url = 'https://api.dandiarchive.org/api/assets/29ba1aaf-9091-469a-b331-6b8ab818b5a6/download/'
-io.read(url, { useStreaming: true }).then((file) => {
-    console.log('File from DANDI', file)
-})
+// const url = 'https://api.dandiarchive.org/api/assets/29ba1aaf-9091-469a-b331-6b8ab818b5a6/download/'
+// io.read(url, { useStreaming: true }).then(async (file) => {
+//     console.log('File from DANDI', file)
+// })
 
 // // Default demo 
 // const run = async () => {

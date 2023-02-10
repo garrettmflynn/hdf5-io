@@ -1,6 +1,8 @@
 
 // ------------ Get All Property Names ------------
 
+import { isBigInt } from "src/globals";
+
 const rawProperties = {}
 const globalObjects = [
     'Object', 
@@ -43,6 +45,7 @@ export function getAllPropertyNames( obj: any ) {
             }
 
             Object.getOwnPropertyNames( obj ).forEach(function ( prop ) {
+                if (prop === 'constructor') return; // Skip constructor
                 if (isGlobalObject && rawProperties[name].includes(prop)) return; // Skip inbuilt class prototypes
                 if ( props.indexOf( prop ) === -1 ) props.push( prop )
             });
@@ -52,12 +55,17 @@ export function getAllPropertyNames( obj: any ) {
     return props;
 }
 
+export type extendedObject = (String | Number | Boolean | Object) & {[x:string | symbol]: any}
 // Create an object from a value. Since some of the standard class properties may be overwritten, we have to create an extended class.
 export const objectify = (value: any) => {
     const typeOf = typeof value
-    let resolvedValue: String | Number | Boolean | Object = value
+    let resolvedValue: extendedObject = value
     if (typeOf === 'string') resolvedValue = new String(resolvedValue)
     else if (typeOf === 'number') resolvedValue = new Number(resolvedValue)
+    else if (typeOf === 'bigint') { // Convert bigints
+        resolvedValue = new Number(resolvedValue)
+        Object.defineProperty(resolvedValue, isBigInt, {value, writable: false}) // Store OG BigInt
+    }
     else if (typeOf === 'boolean') resolvedValue = new Boolean(resolvedValue)
     return resolvedValue
 }

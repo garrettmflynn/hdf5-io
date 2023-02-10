@@ -49,13 +49,13 @@ const lsFile = await io.read(filename)
 
 ## Conventions
 ### Datasets
-When reading an HDF5 file, datasets are transformed into JavaScript Objects:
+When reading an HDF5 file, both datasets and attributes are transformed into JavaScript objects that hold their respective metadata:
 ```javascript
 const datasetValue = 1 // From HDF5 file
 const output = new Number(datasetValue)
 ```
 
-Similarly, datasets must be Objects when written to the file:
+If you are adding a new dataset, this **must** be an Object when written to the file:
 ```javascript
 const object = {
     dataset: new Number(1),
@@ -63,9 +63,14 @@ const object = {
 }
 ```
 
-## Issues
-1. Groups may also have attributes. How do you determine what is a dataset and what is an attribute without the **specification** provided by NWB files and others?
-2. Is it okay that `.specloc` is not transferred when rewritten?
+## Open Questions
+0. Files of at least 1.8MB give memory overload errors when trying to save...
+    - Can we manipulate a writable version of the HDF5 file directly?
+1. `.specloc` is not rewritten as an object reference
+2. I have commented out the line with `data.map(BigInt)` to `output = data.map(bnToBuf);`([src](https://coolaj86.com/articles/convert-js-bigints-to-typedarrays/)) in  `node_modules/h5wasm/dist/esm/hdf5_hl.js` because you can't have a BigInt in a TypedArray that isn't specifically for them...
+    - Generally BigInt write support is very poor in [h5wasm]
+    - **Note:** This only happens when providing the dtype into the creation function...
+3. Most of the time, attributes are not written with the same type as they were at the beginning (e.g. from 64-bit floating-point to 32-bit integer). **Is this a problem?**
 
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).
