@@ -1,14 +1,15 @@
 {
   "name": "hdf5-io",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Simple utility for reading / writing HDF5 files",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/src/index.d.ts",
   "type": "module",
   "exports": {
-    "node": "./dist/index.node.js",
-    "import": "./dist/index.esm.js"
+    "require": "./dist/index.node.js",
+    "import": "./dist/index.esm.js",
+    "default": "./dist/index.js"
   },
   "files": [
     "dist"
