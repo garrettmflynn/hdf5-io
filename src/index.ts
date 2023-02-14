@@ -72,7 +72,7 @@ export class HDF5IO {
 
   files: Map<string, FileObject> = new Map();
 
-  _path: string = "/hdf5-io"
+  _path: string = globalThis.process ? './' : "/hdf5-io" // No path for nodejs
   _debug: boolean;
   __postprocess: Function = (o: any) => o // Returns processed file object
 
@@ -92,6 +92,7 @@ export class HDF5IO {
 
   // Ensure path has slash at the front
   _convertPath = (path: string) => {
+    if (globalThis.process) return path
     const hasSlash = path[0] === '/'
     return path = (hasSlash) ? path : `/${path}` // add slash
   }
@@ -99,40 +100,39 @@ export class HDF5IO {
   initFS = (path: string = this._path) => {
 
     // Note: Can wait for filesystem operations to complete
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
       this._path = path = this._convertPath(path) // set latest path
 
 
-      h5.ready.then(async () => {
+      await h5.ready
 
-        const fs = h5.FS as any // Resolved filesystem type
+      const fs = h5.FS as FS.FileSystemType // Resolved filesystem type
 
-        fs.mkdir(path);
-        fs.chdir(path);
+      fs.mkdir(path);
+      fs.chdir(path);
 
-        try {
-          // Create a local mount of the IndexedDB filesystem:
-          fs.mount(fs.filesystems.IDBFS, {}, path)
-          if (this._debug) console.warn(`[hdf5-io]: Mounted IndexedDB filesystem to ${path}`)
-          this.syncFS(true, path)
-          resolve(true)
-        } catch (e) {
-          switch ((e as any).errno) {
-            case 44:
-              console.warn('Path does not exist');
-              resolve(false)
-              break;
-            case 10:
-              console.warn(`Filesystem already mounted at ${path}`);
-              if (this._debug) console.warn('[hdf5-io]: Active Filesystem', await this.list(path))
-              resolve(true)
-              break;
-            default:
-              console.warn('Unknown filesystem error', e);
-              resolve(false)
-          }
+      try {
+        // Create a local mount of the IndexedDB filesystem:
+        fs.mount((fs as any).filesystems.IDBFS, {}, path)
+        if (this._debug) console.warn(`[hdf5-io]: Mounted IndexedDB filesystem to ${path}`)
+        this.syncFS(true, path)
+        resolve(true)
+      } catch (e) {
+        switch ((e as any).errno) {
+          case 44:
+            console.warn('Path does not exist');
+            resolve(false)
+            break;
+          case 10:
+            console.warn(`Filesystem already mounted at ${path}`);
+            if (this._debug) console.log('[hdf5-io]: Active Filesystem', await this.list(path))
+            resolve(true)
+            break;
+          default:
+            console.warn('Unknown filesystem error', e);
+            resolve(false)
         }
-      })
+      }
     })
 
   }
@@ -169,7 +169,7 @@ export class HDF5IO {
 
     const onComplete = (files: File[]) => {
       let returned = ((files.length === 1) ? this.load(files[0].name) : Array.from(files.map(f => this.load(f.name))))
-      console.warn('[hdf5-io]: Files Uploaded', returned)
+      console.log('[hdf5-io]: Files Uploaded', returned)
       return returned
     }
 
@@ -323,9 +323,12 @@ export class HDF5IO {
       filename = await fetch(url, { signal }).then((res) => {
         let name = res.headers.get('content-disposition')
         controller.abort()
-        const gotName = !!name
-        if (!gotName) name = 'default.nwb'
-        console[gotName ? 'warn' : 'error'](`[hdf5-io]: Saving fetched file as ${name}`)
+        if (!name) {
+          const filename = res.url.split('/').pop()
+          if (filename?.includes('.')) name = filename // If the URL has a filename with an extension, use that
+        }
+        if (!name) name = 'default.nwb'
+        console.log(`[hdf5-io]: Saving fetched file as ${name}`)
         return name as string
       })
     }
@@ -356,37 +359,59 @@ export class HDF5IO {
 
       // Use the Streams API
       if (res.body) {
-        console.log('res.headers', res.headers)
-        const reader = res.body.getReader()
+        const isNodeFetch = !res.body.getReader
+        if (isNodeFetch) return res
+
+        const reader = res.body.getReader() // isNodeFetch ? undefined : res.body.getReader() // Node vs. Browser
         const length = res.headers.get("Content-Length") as any
         let received = 0
 
-        // On Stream Chunk
-        const stream = new ReadableStream({
-          start(controller) {
+          // On Stream Chunk
+          const stream = new ReadableStream({
+            start(controller) {
 
-            const push = async () => {
 
-              reader.read().then(({ value, done }) => {
-                if (done) {
-                  if (options.successCallback) options.successCallback(true, url)
-                  controller.close();
-                  return;
-                }
-
+              let onChunk = (value: any) => {
                 received += value?.length ?? 0
                 if (options.progressCallback) options.progressCallback(received / length, length, url)
                 controller.enqueue(value);
+              }
+
+              const onDone = () => {
+                if (options.successCallback) options.successCallback(true, url)
+                controller.close();
+              }
+
+              // Browser Read
+              // if (reader) {
+                const push = async () => {
+
+                  const read = reader.read()
+                  read.then(({ value, done }) => {
+                    if (done) {
+                      onDone()
+                      return;
+                    }
+
+                    onChunk(value)
+                    push()
+                  })
+                }
+
                 push()
-              })
+              // } 
+              
+              // // Node Read
+              // else {
+              //   const reader = res.body as any
+              //   reader.on('data', onChunk);
+              //   reader.on('end', onDone);
+              // }
             }
+          })
 
-            push()
-          }
-        })
-
-        // Read the Response
-        return new Response(stream, { headers: res.headers });
+          // Read the Response
+          return new Response(stream, { headers: res.headers });
       } else return new Response()
     })
 
@@ -406,6 +431,7 @@ export class HDF5IO {
     const tick = performance.now()
     await h5.ready
     const fs = h5.FS as any
+    console.log('Writing file', name)
     fs.writeFile(name, new Uint8Array(ab));
     const tock = performance.now()
     if (this._debug) console.warn(`[hdf5-io]: Wrote raw file in ${tock - tick} ms`)
@@ -504,13 +530,13 @@ export class HDF5IO {
       // Postprocess the data using an arbitrary function
       const parsed = aggregator[innerKey]
 
-      if (this._debug) console.warn(`[hdf5-io]: Parsed HDF5 object`, parsed)
+      if (this._debug) console.warn(`[hdf5-io]: Parsed ${name}`) //, parsed)
 
       Object.defineProperty(parsed, indexedDBFilenameSymbol, { value: name, writable: false })
 
       resolved.file = this.__postprocess(parsed)
 
-      if (this._debug) console.warn(`[hdf5-io]: Processed HDF5 object`, resolved.file)
+      if (this._debug) console.warn(`[hdf5-io]: Processed ${name}`) //, resolved.file)
 
       const tock = performance.now()
 
@@ -556,7 +582,7 @@ export class HDF5IO {
   }
 
   #save = async (path: string = this._path) => {
-    console.warn('[hdf5-io]: Saving file', path)
+    console.log('[hdf5-io]: Saving file', path)
     const file = this.files.get(path)
     if (file) {
       if (file.url) throw new Error('[hdf5-io]: Cannot save streaming object to file')
@@ -566,7 +592,7 @@ export class HDF5IO {
         return path
       }
     } else {
-      console.warn('[hdf5-io]: No file found to save')
+      console.log('[hdf5-io]: No file found to save')
       return false
     }
   }
@@ -577,7 +603,7 @@ export class HDF5IO {
     if (o[isStreaming]) throw new Error('[hdf5-io]: Cannot write streaming object to file')
 
     let file = this.get(name, 'w')
-    console.warn('[hdf5-io]: Writing file', name, file, o)
+    console.log('[hdf5-io]: Writing file', name)//, file, o)
 
     if (Number(file?.reader?.file_id) != -1) {
 
@@ -636,7 +662,7 @@ export class HDF5IO {
             case 'group':
               const group = resolved.reader.create_group(newPath);
               if (group) writeObject(value, newPath, group)
-              else console.warn('[hdf5-io]: Failed to create group', newPath, value)
+              else console.log('[hdf5-io]: Failed to create group', newPath, value)
               break;
             case 'attribute':
               if (value) {
@@ -650,7 +676,7 @@ export class HDF5IO {
                 // const hasType = dtype && dtype !== 'unknown'
                 // const spec = hasType ? [attrVal.shape, dtype] : []
                 parent.create_attribute(k, res) //, ...spec); 
-              } else console.warn('[hdf5-io]: Ignoring attribute', k, value)
+              } else console.log('[hdf5-io]: Ignoring attribute', k, value)
               break;
             default:
               console.error('Ignore', k, value)

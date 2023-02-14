@@ -37,13 +37,13 @@ const file = await io.fetch(
 )
 
 // save the file to local storage
-io.save()
+const filename = io.save(file)
 
 // list files in local storage
 const files = await io.list()
 
 // get specific file from local storage
-const lsFile = await io.read(filename)
+const lsFile = await io.load(filename)
 
 ```
 
