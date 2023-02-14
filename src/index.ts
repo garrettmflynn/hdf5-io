@@ -1,11 +1,11 @@
 import * as h5 from "h5wasm";
 import { ACCESS_MODES, Dataset, Group } from "h5wasm"
-import { indexedDBFilenameSymbol, isDataset, isGroup, isAttribute, isBigInt, isStreaming } from "./globals";
+import { indexedDBFilenameSymbol, isDataset, isGroup, isAttribute, isStreaming } from "./globals";
 
 import FileProxy, { FileProxyOptions } from "./lazy/FileProxy";
-import { Callbacks } from "./types";
+import { ArbitraryObject, Callbacks } from "./types";
 
-export type ArbitraryObject = { [x: string | symbol]: any }
+import * as polyfills from './polyfills'
 
 export type IOInput = {
   debug?: boolean,
@@ -16,6 +16,8 @@ import { getAllPropertyNames, objectify } from "./utils/properties";
 
 export * from './utils/properties' // Exporting all property helpers
 export * from './globals' // Exporting all globals
+
+export const ready = polyfills.ready
 
 const ignore = ['constructor', 'slice'] // NOTE: Slice doesn't actually work for some reason...
 const carryAllProperties = (target: any, source: any) => {
@@ -66,7 +68,7 @@ function isNumeric(str: any) {
     !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
 }
 
-export default class HDF5IO {
+export class HDF5IO {
 
   files: Map<string, FileObject> = new Map();
 
@@ -166,7 +168,7 @@ export default class HDF5IO {
 
 
     const onComplete = (files: File[]) => {
-      let returned = ((files.length === 1) ? this.read(files[0].name) : Array.from(files.map(f => this.read(f.name))))
+      let returned = ((files.length === 1) ? this.load(files[0].name) : Array.from(files.map(f => this.load(f.name))))
       console.warn('[hdf5-io]: Files Uploaded', returned)
       return returned
     }
@@ -233,11 +235,13 @@ export default class HDF5IO {
     else return []
   }
 
-  blob = (file?: any) => {
+  blob = async (file?: any) => {
     const ab = this.arrayBuffer(file)
     if (ab) {
+      await polyfills.ready
       return new Blob([ab], { type: this._mimeType });
     }
+    else return undefined
   }
 
   // NOTE: Only called after resolution anyways...
@@ -247,7 +251,7 @@ export default class HDF5IO {
   }
 
   // Allow Download of NWB-Formatted HDF5 Files from the Browser
-  download = (
+  download = async (
     input: string | FileType, // Name or file
     file?: any
   ) => {
@@ -262,7 +266,7 @@ export default class HDF5IO {
       if (!name) name = file.name // Get Default Name
       file.reader.flush();
 
-      let blob = this.blob(file)
+      let blob = await this.blob(file)
       if (blob) {
         var a = document.createElement("a");
         document.body.appendChild(a);
@@ -310,6 +314,8 @@ export default class HDF5IO {
     filename: Options['filename'],
     options: FetchOptions = {}
   ) => {
+
+    await polyfills.ready
 
     if (typeof filename !== 'string') {
       const controller = new AbortController()
@@ -392,7 +398,7 @@ export default class HDF5IO {
     if (this._debug) console.warn(`[hdf5-io]: Fetched in ${tock - tick} ms`)
 
     await this.#write(resolvedFilename, ab)
-    return this.read(resolvedFilename)
+    return this.load(resolvedFilename)
   }
 
   // Iteratively Check FS to Write File
@@ -467,10 +473,10 @@ export default class HDF5IO {
   }
 
   // ---------------------- Core HDF5IO Methods ----------------------
-  read = (
+  load = (
     name?: string | null,
-    options?: Options = {}
-  ) => {
+    options: Options = {}
+  ): any => {
 
     if (name == null) return this.upload(undefined, options)
     if (typeof name !== 'string') throw new Error(`[hdf5-io]: Invalid file name ${name}`)
@@ -543,13 +549,13 @@ export default class HDF5IO {
       }
     } else if (useLocalStorage && (name && resolved.file === undefined)) {
       if (this._debug) console.warn(`[hdf5-io]: Returning local version from ${this._path}`)
-      this.read(name)
+      this.load(name)
     }
 
     return o
   }
 
-  save = async (path: string = this._path) => {
+  #save = async (path: string = this._path) => {
     console.warn('[hdf5-io]: Saving file', path)
     const file = this.files.get(path)
     if (file) {
@@ -557,7 +563,7 @@ export default class HDF5IO {
       else if (!file.reader) throw new Error('[hdf5-io]: Cannot save file without reader')
       else {
         await this.syncFS(false, path)
-        return true
+        return path
       }
     } else {
       console.warn('[hdf5-io]: No file found to save')
@@ -565,13 +571,13 @@ export default class HDF5IO {
     }
   }
 
-  write = async (o: ArbitraryObject, name: string = o[indexedDBFilenameSymbol], limit = false) => {
+  save = async (o: ArbitraryObject, name: string = o[indexedDBFilenameSymbol], limit = false) => {
 
     if (!name) throw new Error(`[hdf5-io]: Invalid file name ${name}`)
     if (o[isStreaming]) throw new Error('[hdf5-io]: Cannot write streaming object to file')
 
     let file = this.get(name, 'w')
-    console.warn('[hdf5-io]: Writing file', name, file)
+    console.warn('[hdf5-io]: Writing file', name, file, o)
 
     if (Number(file?.reader?.file_id) != -1) {
 
@@ -629,7 +635,8 @@ export default class HDF5IO {
               break;
             case 'group':
               const group = resolved.reader.create_group(newPath);
-              writeObject(value, newPath, group)
+              if (group) writeObject(value, newPath, group)
+              else console.warn('[hdf5-io]: Failed to create group', newPath, value)
               break;
             case 'attribute':
               if (value) {
@@ -643,7 +650,7 @@ export default class HDF5IO {
                 // const hasType = dtype && dtype !== 'unknown'
                 // const spec = hasType ? [attrVal.shape, dtype] : []
                 parent.create_attribute(k, res) //, ...spec); 
-              } else console.error('Invalid attribute', k, value)
+              } else console.warn('[hdf5-io]: Ignoring attribute', k, value)
               break;
             default:
               console.error('Ignore', k, value)
@@ -657,11 +664,11 @@ export default class HDF5IO {
       if (this._debug) console.warn(`[hdf5-io]: Wrote file object to browser filesystem in ${tock - tick} ms`)
     } else console.error(`[hdf5-io]: Failed to write file:`, name)
 
-    return await this.save(name) // Save when writing
+    return await this.#save(name) // Save when writing
   }
 
   close = (name?: string) => {
-    if (!name) this.files.forEach((v, k) => this.close(k)) // Close all files
+    if (!name) this.files.forEach((_, k) => this.close(k)) // Close all files
     else {
       const fileObj = this.files.get(name)
       if (fileObj) {
@@ -671,3 +678,5 @@ export default class HDF5IO {
     }
   }
 }
+
+export default HDF5IO

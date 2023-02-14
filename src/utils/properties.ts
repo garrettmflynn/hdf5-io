@@ -1,9 +1,10 @@
 
 // ------------ Get All Property Names ------------
 
-import { isBigInt } from "src/globals";
+import { ArbitraryObject } from "../types";
+import { isBigInt } from "../globals";
 
-const rawProperties = {}
+const rawProperties: ArbitraryObject = {}
 const globalObjects = [
     'Object', 
     'Array', 
@@ -41,7 +42,7 @@ export function getAllPropertyNames( obj: any ) {
             const name = obj.constructor?.name 
             const isGlobalObject = globalObjects.includes(name)
             if (globalObjects.includes(name)) {
-                if (!rawProperties[name]) rawProperties[name] = [...Object.getOwnPropertyNames(globalThis[name].prototype)]
+                if (!rawProperties[name]) rawProperties[name] = [...Object.getOwnPropertyNames((globalThis as any)[name].prototype)]
             }
 
             Object.getOwnPropertyNames( obj ).forEach(function ( prop ) {

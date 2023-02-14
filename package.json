@@ -18,7 +18,7 @@
     "start": "tinybuild --path tinybuild.demo.js",
     "build": "tinybuild build",
     "typecheck": "tsc --watch --preserveWatchOutput --noEmit",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --coverage",
     "build:docs": "cd docs && yarn && yarn run build"
   },
   "keywords": [
@@ -29,9 +29,17 @@
   "author": "Garrett Flynn <gflynn@usc.edu>",
   "license": "AGPL-3.0-or-later",
   "devDependencies": {
+    "@jest/globals": "^29.4.2",
+    "@types/jest": "^29.4.0",
     "h5wasm": "0.4.9",
     "hdf5-io-lazy": "./src/lazy",
+    "jest": "^29.4.2",
+    "node-fetch": "^3.3.0",
     "tinybuild": "0.3.192",
-    "typescript": "4.6.4"
+    "ts-jest": "^29.0.5",
+    "ts-node": "^10.9.1",
+    "tslib": "^2.5.0",
+    "typescript": "4.6.4",
+    "typescript-lru-cache": "^1.2.3"
   }
 }

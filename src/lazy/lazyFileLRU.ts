@@ -6,8 +6,10 @@
 // XHR, which is not possible in browsers except in a web worker!
 
 // Adding: LRUCache mechanism
-import { LRUCache } from 'typescript-lru-cache/src/index.js';
+import { LRUCache } from 'typescript-lru-cache' ///src/index.js';
 import { Callbacks } from '../types';
+
+import * as polyfills from '../polyfills'
 
 export interface Cache {
   get(key: number): Uint8Array | null;
@@ -94,7 +96,7 @@ export class LazyUint8Array {
   private readonly maxReadHeads: number;
   private readonly logPageReads: boolean;
   private readonly requestLimiter: RequestLimiter;
-  private readonly callbacks: Callbacks;
+  // private readonly callbacks: Callbacks;
 
   constructor(config: LazyFileConfig) {
     this._chunkSize = config.requestChunkSize;
@@ -104,12 +106,14 @@ export class LazyUint8Array {
     this.maxReadHeads = config.maxReadHeads ?? 3;
     this.rangeMapper = config.rangeMapper;
     this.logPageReads = config.logPageReads ?? false;
-    this.callbacks = config.callbacks ?? {}
+    // this.callbacks = config.callbacks ?? {}
 
     if (config.fileLength) {
       this._length = config.fileLength;
     }
-    this.requestLimiter = config.requestLimiter == null ? ((ignored) => {}) : config.requestLimiter;
+    this.requestLimiter = config.requestLimiter == null ? ((
+      // ignored
+    ) => {}) : config.requestLimiter;
     const LRUSize = config.LRUSize;
     if (LRUSize !== undefined) {
         this.cache = new LRUCache<number, Uint8Array>({maxSize: LRUSize});
@@ -200,7 +204,7 @@ export class LazyUint8Array {
       let endByte = (head.startChunk + chunksToFetch) * this.chunkSize - 1; // including this byte
       endByte = Math.min(endByte, this.length - 1); // if datalength-1 is selected, this is the last block
 
-      const id = `${startByte}-${endByte}`
+      // const id = `${startByte}-${endByte}`
 
       const buf = this.doXHR(startByte, endByte);
       for (let i = 0; i < chunksToFetch; i++) {
@@ -265,6 +269,7 @@ export class LazyUint8Array {
       // Fallback to get request
       else {
         console.warn('Falling back to aborted GET')
+        await polyfills.ready
         const controller = new AbortController();
         const signal = controller.signal;
         const response = await fetch(url, { signal }).catch(this.#ready.reject)

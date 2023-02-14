@@ -10,17 +10,17 @@ const io = new HDF5IO({
 
 let file: any;
 const uploadButton = document.getElementById('upload') as HTMLButtonElement
-uploadButton.onclick = async () => file = await io.read()
+uploadButton.onclick = async () => file = await io.load()
 
 const downloadButton = document.getElementById('download') as HTMLButtonElement
 downloadButton.onclick = async () => {
     if (file){
         try {
-            await io.write(file) // Catch memory overloads
+            await io.save(file) // Catch memory overloads
         } catch (e) {
             console.warn(`Write error (${e.message}). Trying again with a limit on the number of nested groups...`)
             try {
-                await io.write(file) // Catch memory overloads
+                await io.save(file) // Catch memory overloads
             } catch (e) {
                 console.error(`Write failed...`)
             }

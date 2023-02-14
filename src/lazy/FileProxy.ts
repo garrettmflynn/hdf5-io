@@ -20,11 +20,12 @@ class FileProxy {
     
     callbacks: Callbacks
 
-    #toResolve = {}
+    #toResolve: {[x:string]: {resolve: Function, timestamp: number}} = {}
     file: any = {}
 
     constructor(url?: string, options?: FileProxyOptions, callbacks?: Callbacks) {
 
+        
         this.set(url, options, callbacks)
 
         // Initialize Worker
@@ -147,7 +148,7 @@ class FileProxy {
         else console.error('File could not be loaded...')
     }
 
-    send = (o) => {
+    send = (o: any) => {
         return new Promise(resolve => {
             const id = Math.random().toString(36).substring(7);
             this.#toResolve[id] = {resolve, timestamp: Date.now()}

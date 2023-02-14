@@ -10,3 +10,6 @@ docs/docs/reference
 **.log
 
 *-lock/.j
+
+# Jest
+coverage

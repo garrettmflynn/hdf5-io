@@ -1,6 +1,7 @@
-import { File, ready, Group, Dataset, BrokenSoftLink, ExternalLink, Attribute } from "h5wasm";
+import { File, ready, Group, Dataset, BrokenSoftLink, ExternalLink } from "h5wasm";
 import  { createLazyFile } from './lazyFileLRU';
 import * as global from './global'
+import { ArbitraryObject } from "src/types";
 
 declare var self: MyWorkerGlobalScope;
 interface MyWorkerGlobalScope extends Worker {
@@ -16,7 +17,7 @@ function getAttr (key: string, parent: {[x:string]: any}) {
 }
 
 
-self.onmessage = async function (event) {
+globalThis.onmessage = async function (event) {
     const { action, payload } = event.data;
     const id = event.data[global.lazyFileProxyId]
 
@@ -24,7 +25,7 @@ self.onmessage = async function (event) {
         const url = payload?.url;
         if (!url) {
             console.error('No url provided')
-            self.postMessage({[global.lazyFileProxyId]: id, payload: false})
+            globalThis.postMessage({[global.lazyFileProxyId]: id, payload: false})
         } else {
             const requestChunkSize = payload?.requestChunkSize ?? 1024 * 1024;
             const LRUSize = payload?.LRUSize ?? 50;
@@ -34,18 +35,18 @@ self.onmessage = async function (event) {
                 requestChunkSize,
                 LRUSize,
                 callbacks: {
-                    progressCallback: (ratio, length, identifier) => {
-                        self.postMessage({[global.lazyFileProxyId]: id, type: 'progress', payload: {ratio, length, id: identifier}})
+                    progressCallback: (ratio: number, length: number, identifier: string) => {
+                        globalThis.postMessage({[global.lazyFileProxyId]: id, type: 'progress', payload: {ratio, length, id: identifier}})
                     },
                     successCallback: () => {
-                        self.postMessage({[global.lazyFileProxyId]: id, type: 'success', payload: true})
+                        globalThis.postMessage({[global.lazyFileProxyId]: id, type: 'success', payload: true})
                     }
                 }
             }
             //hdf5.FS.createLazyFile('/', "current.h5", DEMO_FILEPATH, true, false);
             await createLazyFile(FS, '/', 'current.h5', true, false, config);
             file = new File("current.h5");
-            self.postMessage({[global.lazyFileProxyId]: id, payload: true})
+            globalThis.postMessage({[global.lazyFileProxyId]: id, payload: true})
         }
     }
     else if (action === "get") {
@@ -58,7 +59,7 @@ self.onmessage = async function (event) {
             const item = file.get(path);
 
             // Transfer value from attrs
-            let attrs = {};
+            let attrs: ArbitraryObject = {};
             const possiblyAttrs = (item as any)?.attrs;
             if (possiblyAttrs) {
                 for (let key in possiblyAttrs) attrs[key] = getAttr(key, possiblyAttrs)
@@ -89,10 +90,10 @@ self.onmessage = async function (event) {
             }
             else newPayload = { type: "error", value: `item ${path} not found` }
 
-            self.postMessage({[global.lazyFileProxyId]: id, payload: newPayload})
+            globalThis.postMessage({[global.lazyFileProxyId]: id, payload: newPayload})
         }
     }
   };
 
-  export default self as any;
+  export default globalThis as any;
 
