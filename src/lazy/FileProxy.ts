@@ -2,6 +2,7 @@ import { isStreaming } from '../globals'
 import { Callbacks } from '../types'
 import workerURI from './adv.worker'
 import * as global from './global'
+// import Worker from 'web-worker'; // NOTE: Must import worker as uri...
 
 export type FileProxyOptions = {
     LRUSize?: number
@@ -29,7 +30,8 @@ class FileProxy {
         this.set(url, options, callbacks)
 
         // Initialize Worker
-        if (window && window.Worker) {
+        if (globalThis.Worker) {
+            // console.log('WORKER URI', workerURI)
             this.worker = new Worker(workerURI) 
             this.worker.addEventListener("message", (event) => {
                 const info = this.#toResolve[event.data[global.lazyFileProxyId]]
