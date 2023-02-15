@@ -13,7 +13,7 @@ const config = {
         minify: true,
         sourcemap: true,
         globalThis: 'HDF5IO',
-        external: ['node-fetch'] //, 'node:*'],
+        external: ['node-fetch', 'node:*'],
         //globals:{'index.js':['Graph']}
         //init:{'index.js':function(bundle) { console.log('prepackaged bundle script!', bundle); }.toString(); } //pass stringified functions in to init bundle scripts in a custom way (e.g. for quick rebundling)     
      },
