@@ -9,12 +9,12 @@ describe(`Can create an IO object`, () => {
 // Initialize HDF5IO instance (all optional parameters
 let io: any;
 
-beforeAll(() => {
+beforeAll(async () => {
   const dir = 'hdf5-test'
   const fulldir = `${process.cwd()}/${dir}`
   if (fs.existsSync(fulldir)) fs.rmSync(fulldir, { recursive: true }) // Delete any existing test directory
   io = new hdf5.HDF5IO()
-  io.initFS(dir) // initialize local filesystem // NOTE: This errors on fs.mkdir
+  await io.initFS(dir) // initialize local filesystem // NOTE: This errors on fs.mkdir
 })
 
 

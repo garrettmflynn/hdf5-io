@@ -269,7 +269,9 @@ export class LazyUint8Array {
       // Fallback to get request
       else {
         console.warn('Falling back to aborted GET')
+
         await polyfills.ready
+
         const controller = new AbortController();
         const signal = controller.signal;
         const response = await fetch(url, { signal }).catch(this.#ready.reject)
@@ -354,11 +356,7 @@ export class LazyUint8Array {
       xhr.setRequestHeader("Range", "bytes=" + from + "-" + to);
 
     // Some hints to the browser that we want binary data.
-    try {
-      xhr.responseType = "arraybuffer";
-    } catch {
-      console.warn('Setting XHR responseType not supported')
-    }
+    xhr.responseType = "arraybuffer";
 
     if (xhr.overrideMimeType) {
       xhr.overrideMimeType("text/plain; charset=x-user-defined");

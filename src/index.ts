@@ -17,7 +17,7 @@ import { getAllPropertyNames, objectify } from "./utils/properties";
 export * from './utils/properties' // Exporting all property helpers
 export * from './globals' // Exporting all globals
 
-export const ready = polyfills.ready
+export const ready = Promise.all([polyfills.ready, h5.ready])
 
 const ignore = ['constructor', 'slice'] // NOTE: Slice doesn't actually work for some reason...
 const carryAllProperties = (target: any, source: any) => {
@@ -96,12 +96,13 @@ export class HDF5IO {
     return path = (hasSlash) ? path : `/${path}` // add slash
   }
 
-  initFS = (path: string = this._path) => {
+  initFS = async (path: string = this._path) => {
 
 
     this._path = path = this._convertPath(path) // set latest path
 
     if (globalThis.process) {
+      await ready
       const cwd = polyfills.process.cwd()
       this._path = (cwd.slice(25) === path.slice(25)) ? path : `${cwd}${path}`
       if (!polyfills.fs.existsSync(this._path)) polyfills.fs.mkdirSync(this._path);
@@ -112,7 +113,7 @@ export class HDF5IO {
     // Note: Can wait for filesystem operations to complete
     return new Promise(async resolve => {
 
-      await h5.ready // NOTE: This is the only reason it's async
+      await ready // NOTE: This is the only reason it's async
 
       const fs = h5.FS as FS.FileSystemType // Resolved filesystem type
 
@@ -151,7 +152,7 @@ export class HDF5IO {
 
     path = this._convertPath(path) 
     return new Promise(async resolve => {
-      await h5.ready
+      await ready
       const fs = h5.FS as any // Resolved filesystem type
       if (this._debug && !read) console.warn(`[hdf5-io]: Pushing all current files in ${path} to IndexedDB`)
       fs.syncfs(read, async (e?: Error) => {
@@ -225,7 +226,7 @@ export class HDF5IO {
   list = async (path: string = this._path) => {
     path = this._convertPath(path)
 
-    await h5.ready
+    await ready
     let node;
 
     // Correction for Node.js
@@ -446,7 +447,7 @@ export class HDF5IO {
   // Iteratively Check FS to Write File
   #write = async (name: string, ab: ArrayBuffer = new ArrayBuffer(0)) => {
     const tick = performance.now()
-    await h5.ready
+    await ready
     const fs = h5.FS as any
     fs.writeFile(name, new Uint8Array(ab));
     const tock = performance.now()
@@ -539,7 +540,7 @@ export class HDF5IO {
     options: Options = {}
   ): Promise<any> => {
 
-    await h5.ready // Necessary tor effective use of h5.File
+    await ready // Necessary tor effective use of h5.File
 
     if (name == null) return this.upload(undefined, options)
     if (typeof name !== 'string') throw new Error(`[hdf5-io]: Invalid file name ${name}`)
@@ -654,7 +655,7 @@ export class HDF5IO {
 
   save = async (o: ArbitraryObject, name: string = o[indexedDBFilenameSymbol], limit = false) => {
 
-    await h5.ready // Make sure the library is ready
+    await ready // Make sure the library is ready
 
     if (!name) throw new Error(`[hdf5-io]: Invalid file name ${name}`)
     if (o[isStreaming]) throw new Error('[hdf5-io]: Cannot write streaming object to file')
