@@ -354,7 +354,12 @@ export class LazyUint8Array {
       xhr.setRequestHeader("Range", "bytes=" + from + "-" + to);
 
     // Some hints to the browser that we want binary data.
-    xhr.responseType = "arraybuffer";
+    try {
+      xhr.responseType = "arraybuffer";
+    } catch {
+      console.warn('Setting XHR responseType not supported')
+    }
+
     if (xhr.overrideMimeType) {
       xhr.overrideMimeType("text/plain; charset=x-user-defined");
     }
@@ -362,8 +367,20 @@ export class LazyUint8Array {
     xhr.send(null);
     if (!((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304))
       throw new Error("Couldn't load " + url + ". Status: " + xhr.status);
-    if (xhr.response !== undefined) {
-      return xhr.response as ArrayBuffer;
+
+    let response = xhr.response
+    if (response !== undefined) {
+
+      // Convert string to array buffer
+      if (!(response instanceof ArrayBuffer) && typeof response === "string") {
+        const str = xhr.response
+        const buf = new ArrayBuffer(str.length);
+        const bufView = new Uint8Array(buf);
+        for (let i=0, strLen=str.length; i<strLen; i++) bufView[i] = str.charCodeAt(i);
+        response = buf;
+      }
+
+      return response as ArrayBuffer;
     } else {
       throw Error("xhr did not return uint8array");
     }

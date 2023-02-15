@@ -6,8 +6,6 @@ import FileProxy, { FileProxyOptions } from "./lazy/FileProxy";
 import { ArbitraryObject, Callbacks } from "./types";
 
 import * as polyfills from './polyfills'
-import fs from 'node:fs'
-import process from 'node:process'
 
 export type IOInput = {
   debug?: boolean,
@@ -104,10 +102,10 @@ export class HDF5IO {
     this._path = path = this._convertPath(path) // set latest path
 
     if (globalThis.process) {
-      const cwd = process.cwd()
+      const cwd = polyfills.process.cwd()
       this._path = (cwd.slice(25) === path.slice(25)) ? path : `${cwd}${path}`
-      if (!fs.existsSync(this._path)) fs.mkdirSync(this._path);
-      process.chdir(`.${path}`);
+      if (!polyfills.fs.existsSync(this._path)) polyfills.fs.mkdirSync(this._path);
+      polyfills.process.chdir(`.${path}`);
       return true
     }
 
@@ -118,8 +116,8 @@ export class HDF5IO {
 
       const fs = h5.FS as FS.FileSystemType // Resolved filesystem type
 
-      fs.mkdir(path);
-      fs.chdir(path);
+      polyfills.fs.mkdir(path);
+      polyfills.fs.chdir(path);
 
       try {
         // Create a local mount of the IndexedDB filesystem:
@@ -232,7 +230,7 @@ export class HDF5IO {
 
     // Correction for Node.js
     if (globalThis.process) {
-      const files = fs.readdirSync(path);
+      const files = polyfills.fs.readdirSync(path);
       return files
     }
     
@@ -337,6 +335,7 @@ export class HDF5IO {
     if (typeof filename !== 'string') {
       const controller = new AbortController()
       const signal = controller.signal
+      console.log('URL', url)
       filename = await fetch(url, { signal }).then((res) => {
         let name = res.headers.get('content-disposition')
         controller.abort()
@@ -355,6 +354,7 @@ export class HDF5IO {
 
     // Use streaming if applicable
     if (options.useStreaming) {
+      console.log('URL', url)
       const streamObject = await this.stream(url, resolvedFilename, typeof options.useStreaming === 'object' ? options.useStreaming : undefined, {
         successCallback: options.successCallback,
         progressCallback: options.progressCallback,

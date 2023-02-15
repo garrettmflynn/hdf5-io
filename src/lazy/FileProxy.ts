@@ -31,8 +31,7 @@ class FileProxy {
 
         // Initialize Worker
         if (globalThis.Worker) {
-            // console.log('WORKER URI', workerURI)
-            this.worker = new Worker(workerURI) 
+            this.worker =  (typeof workerURI === 'string') ? new Worker(workerURI) : workerURI // new Worker(workerURI) 
             this.worker.addEventListener("message", (event) => {
                 const info = this.#toResolve[event.data[global.lazyFileProxyId]]
                 if (info) info.resolve(event.data.payload)

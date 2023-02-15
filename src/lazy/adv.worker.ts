@@ -3,7 +3,7 @@ import  { createLazyFile } from './lazyFileLRU';
 import * as global from './global'
 import { ArbitraryObject } from "src/types";
 
-declare var self: MyWorkerGlobalScope;
+declare var globalThis: MyWorkerGlobalScope;
 interface MyWorkerGlobalScope extends Worker {
     file: File;
     import: object;
@@ -23,8 +23,8 @@ globalThis.onmessage = async function (event) {
 
     if (action === "load") {
         const url = payload?.url;
+
         if (!url) {
-            console.error('No url provided')
             globalThis.postMessage({[global.lazyFileProxyId]: id, payload: false})
         } else {
             const requestChunkSize = payload?.requestChunkSize ?? 1024 * 1024;

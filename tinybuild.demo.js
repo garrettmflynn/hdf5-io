@@ -1,9 +1,9 @@
 const config = {
     bundler: { //esbuild settings, set false to skip build step or add bundle:true to config object to only bundle (alt methods)
         entryPoints: [ //entry point file(s). These can include .js, .mjs, .ts, .jsx, .tsx, or other javascript files. Make sure your entry point is a ts file if you want to generate types
-        "index.js"
+        "index.js",
         ],
-        outfile: "dist/index", //exit point file, will append .js as well as indicators like .esm.js, .node.js for other build flags
+        outfile: "demo/index", //exit point file, will append .js as well as indicators like .esm.js, .node.js for other build flags
         //outdir:[]               //exit point files, define for multiple bundle files
         bundleBrowser: true, //create plain js build? Can include globals and init scripts
         bundleESM: false, //create esm module js files
@@ -12,7 +12,8 @@ const config = {
         bundleHTML: false, //wrap the first entry point file as a plain js script in a boilerplate html file, frontend scripts can be run standalone like a .exe! Server serves this as start page if set to true.
         minify: false,
         sourcemap: false,
-        globalThis: 'HDF5IO'
+        globalThis: 'HDF5IO',
+        external: ['node-fetch', 'node:*'],
         //globals:{'index.js':['Graph']}
         //init:{'index.js':function(bundle) { console.log('prepackaged bundle script!', bundle); }.toString(); } //pass stringified functions in to init bundle scripts in a custom way (e.g. for quick rebundling)     
      },
@@ -25,6 +26,7 @@ const config = {
         socket_protocol: "ws", //frontend socket protocol, wss for served, ws for localhost
         hotreload: 5080,  //hotreload websocket server port
         //watch: ['../'], //watch additional directories other than the current working directory
+        ignore: ['demo'],
         pwa: "dist/service-worker.js",  //pwa mode? Injects service worker registry code in (see pwa README.md)
         python: false,//7000,  //quart server port (configured via the python server script file still)
         python_node: 7080, //websocket relay port (relays messages to client from nodejs that were sent to it by python)

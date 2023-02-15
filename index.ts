@@ -1,4 +1,4 @@
-import HDF5IO from "./src";
+import HDF5IO from "./src/index";
 
 import * as visualscript from './external/visualscript/index.esm'
 
@@ -87,7 +87,6 @@ if (load && fileUrl && size && chunk) load.onclick = function() {
     let LRUSize = parseInt(size.value, 10);
     let requestChunkSize = parseInt(chunk.value, 10);
     io.stream(url, { LRUSize, requestChunkSize }).then((file) => {
-        console.log('Setting file', file)
         editor.set(file)
     })
 }
