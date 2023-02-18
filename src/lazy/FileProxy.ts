@@ -2,7 +2,6 @@ import { isStreaming } from '../globals'
 import { Callbacks } from '../types'
 import workerURI from './adv.worker'
 import * as global from './global'
-// import Worker from 'web-worker'; // NOTE: Must import worker as uri...
 
 export type FileProxyOptions = {
     LRUSize?: number
@@ -31,7 +30,8 @@ class FileProxy {
 
         // Initialize Worker
         if (globalThis.Worker) {
-            this.worker =  (typeof workerURI === 'string') ? new Worker(workerURI) : workerURI // new Worker(workerURI) 
+            if (typeof workerURI === 'string') {
+            this.worker = new Worker(workerURI)
             this.worker.addEventListener("message", (event) => {
                 const info = this.#toResolve[event.data[global.lazyFileProxyId]]
                 if (info) info.resolve(event.data.payload)
@@ -40,9 +40,8 @@ class FileProxy {
                 
                 else console.error('Message was not awaited...')
             })
-        } else {
-            console.log("Workers are not supported");
-        }
+        } else console.error('Worker URI is not a string')
+        } else console.log("Workers are not supported");
     }
 
     set = (url?: string, options?: FileProxyOptions, callbacks?: Callbacks) => {
@@ -150,11 +149,12 @@ class FileProxy {
     }
 
     send = (o: any) => {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             const id = Math.random().toString(36).substring(7);
             this.#toResolve[id] = {resolve, timestamp: Date.now()}
             o[global.lazyFileProxyId] = id
-            this.worker.postMessage(o);
+            if (this.worker) this.worker.postMessage(o);
+            else reject(`Cannot send message because no worker was created to manage ${this.url}`)
         }) 
     }
 }

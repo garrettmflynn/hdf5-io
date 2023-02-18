@@ -254,7 +254,7 @@ export class LazyUint8Array {
       // // maybe this will help it not use compression?
       // xhr.setRequestHeader("Range", "bytes=" + 0 + "-" + 1e12);
       try { xhr.send(null); } // Try sending a request to get the head
-      catch { console.warn("HEAD request failed..."); }
+      catch { }
 
       // Get information if passed
       if (xhr.status >= 200 && xhr.status < 400) {

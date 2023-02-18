@@ -13,7 +13,7 @@ const config = {
         minify: false,
         sourcemap: false,
         globalThis: 'HDF5IO',
-        external: ['node-fetch', 'node:*'],
+        external: ['node-fetch'] // ,'node:*'],
         //globals:{'index.js':['Graph']}
         //init:{'index.js':function(bundle) { console.log('prepackaged bundle script!', bundle); }.toString(); } //pass stringified functions in to init bundle scripts in a custom way (e.g. for quick rebundling)     
      },
@@ -26,7 +26,7 @@ const config = {
         socket_protocol: "ws", //frontend socket protocol, wss for served, ws for localhost
         hotreload: 5080,  //hotreload websocket server port
         //watch: ['../'], //watch additional directories other than the current working directory
-        ignore: ['demo'],
+        ignore: ['demo', 'tests'],
         pwa: "dist/service-worker.js",  //pwa mode? Injects service worker registry code in (see pwa README.md)
         python: false,//7000,  //quart server port (configured via the python server script file still)
         python_node: 7080, //websocket relay port (relays messages to client from nodejs that were sent to it by python)

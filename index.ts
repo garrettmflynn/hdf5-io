@@ -1,6 +1,7 @@
 import HDF5IO from "./src/index";
+// import HDF5IO from "./dist/index.esm";
 
-import * as visualscript from './external/visualscript/index.esm'
+import * as visualscript from 'visualscript'
 
 // Initialize HDF5IO Instance
 const io = new HDF5IO({
@@ -8,9 +9,14 @@ const io = new HDF5IO({
     debug: true
 })
 
+let editor = new visualscript.ObjectEditor({ readOnly: true})
+
 let file: any;
 const uploadButton = document.getElementById('upload') as HTMLButtonElement
-uploadButton.onclick = async () => file = await io.load()
+uploadButton.onclick = async () => {
+    file = await io.load()
+    editor.set(file)
+}
 
 const downloadButton = document.getElementById('download') as HTMLButtonElement
 downloadButton.onclick = async () => {
@@ -70,7 +76,6 @@ downloadButton.onclick = async () => {
 // run()
 
 // create visual object editor
-let editor = new visualscript.ObjectEditor()
 document.body.insertAdjacentElement('beforeend', editor)
 
 let results_el = document.getElementById("results");
@@ -96,7 +101,7 @@ const pathEl = document.getElementById("path") as HTMLInputElement
 if (get && pathEl) get.onclick = async function() {
     let path = pathEl.value;
     const got =  io.files.get(lastURL)
-    if (got) got.file.get(path).then(ondata)
+    if (got?.file) got.file.get(path).then(ondata)
     else console.error('No files with this url available...')
 }
 
@@ -108,7 +113,7 @@ function ondata (data) {
                 return v.toString();
             }
             else if (ArrayBuffer.isView(v))  {
-                return [...v];
+                return [...v as any];
             }
             return v;
         }, 2);

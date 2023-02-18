@@ -3,6 +3,7 @@ export let fetch = (globalThis as any).fetch
 export let Blob = (globalThis as any).Blob
 export let fs = (globalThis as any).fs
 export let process = (globalThis as any).process // NOTE: This is not a polyfill, but a check for node
+export let Worker = (globalThis as any).Worker
 
 const isReady = new Promise(async (resolve, reject) => {
 
@@ -20,8 +21,14 @@ const isReady = new Promise(async (resolve, reject) => {
                 fs = (globalThis as any).fs = (await import('node:fs')).default 
             }
 
+            if (!Worker) {
+                const importStr = 'web-worker'
+                Worker = (globalThis as any).Worker = (await import(importStr)).default
+            }
+
             // Blob
-            if (!Blob)  Blob = (globalThis as any).Blob = (await import('node:buffer')).default.Blob
+            if (!Blob) Blob = (globalThis as any).Blob = (await import('node:buffer')).default.Blob
+
             resolve(true)
         } else resolve(true)
 
