@@ -61,17 +61,5 @@ const object = {
 }
 ```
 
-## Open Questions
-0. Files of at least 1.8MB give memory overload errors when trying to save...
-    - Can we manipulate a writable version of the HDF5 file directly? Creating existing attributes and datasets is currently unacceptable.
-1. `.specloc` is not rewritten as an object reference
-2. I have commented out the line with `data.map(BigInt)` to `output = data.map(bnToBuf);`([src](https://coolaj86.com/articles/convert-js-bigints-to-typedarrays/)) in  `node_modules/h5wasm/dist/esm/hdf5_hl.js` because you can't have a BigInt in a TypedArray that isn't specifically for them...
-    - Generally BigInt write support is very poor in [h5wasm]
-    - **Note:** This only happens when providing the dtype into the creation function...
-3. Most of the time, attributes are not written with the same type as they were at the beginning (e.g. from 64-bit floating-point to 32-bit integer). **Is this a problem?**
-
-## Limitations
-1. We have been experiencing issues compiling for use in Node.js using tinybuild. As such, this library is **currently only available for use in the browser**.
-
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).

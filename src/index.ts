@@ -10,7 +10,10 @@ import * as polyfills from './polyfills'
 export type IOInput = {
   debug?: boolean,
   postprocess?: Function,
-  reader?: typeof h5
+  reader?: typeof h5,
+  extension?: string,
+  mimeType?: string,
+  path?: string,
 }
 
 import { getAllPropertyNames, objectify } from "./utils/properties";
@@ -87,21 +90,24 @@ export class HDF5IO {
 
   files: Map<string, FileObject> = new Map();
 
-  _path: string = globalThis.process ? '/' : "/hdf5-io" // No path for nodejs
-  _debug: boolean;
-  __postprocess: Function = (o: any) => o // Returns processed file object
+  #path: string = globalThis.process ? '/' : "/hdf5-io" // No path for nodejs
+  #debug: boolean;
+  #postprocess: Function = (o: any) => o // Returns processed file object
 
-  _extension?: string // = 'hdf5'
-  _mimeType: string = 'application/x-hdf5'
-  reader = h5
+  #extension?: string // = 'hdf5'
+  #mimeType: string = 'application/x-hdf5'
+  #reader = h5
+
+  #resolveFilesystem: Function
+  #filesystem = new Promise(resolve => this.#resolveFilesystem = resolve)
 
 
   constructor(options: IOInput = {}) {
-    this._debug = options.debug ?? false;
-    if (options?.postprocess) this.__postprocess = options.postprocess;
+    this.#debug = options.debug ?? false;
+    if (options?.postprocess) this.#postprocess = options.postprocess;
     if (options?.reader) {
-      this.reader = options.reader;
-      ready = Promise.all([polyfills.ready, this.reader.ready]) // Ensure new reader is ready
+      this.#reader = options.reader;
+      ready = Promise.all([polyfills.ready, this.#reader.ready]) // Ensure new reader is ready
     }
 
     // Ensure BigInto Support
@@ -116,18 +122,19 @@ export class HDF5IO {
     return path = (hasSlash) ? path : `/${path}` // add slash
   }
 
-  initFS = async (path: string = this._path) => {
+  initFS = async (path: string = this.#path) => {
 
 
-    this._path = path = this._convertPath(path) // set latest path
+    this.#path = path = this._convertPath(path) // set latest path
 
     // Handle Node.js Filesystem Initialization
     if (globalThis.process) {
       await ready
       const cwd = polyfills.process.cwd()
-      this._path = (cwd.slice(0, 25) === path.slice(0, 25)) ? path : `${cwd}${path}` // Full path in local filesystem
-      if (!polyfills.fs.existsSync(this._path)) polyfills.fs.mkdirSync(this._path);
+      this.#path = (cwd.slice(0, 25) === path.slice(0, 25)) ? path : `${cwd}${path}` // Full path in local filesystem
+      if (!polyfills.fs.existsSync(this.#path)) polyfills.fs.mkdirSync(this.#path);
       polyfills.process.chdir(`.${path}`);
+      this.#resolveFilesystem(true)
       return true
     }
 
@@ -136,7 +143,7 @@ export class HDF5IO {
 
       await ready // NOTE: This is the only reason it's async
 
-      const fs = this.reader.FS as FS.FileSystemType // Resolved filesystem type
+      const fs = this.#reader.FS as FS.FileSystemType // Resolved filesystem type
 
       fs.mkdir(path);
       fs.chdir(path);
@@ -144,8 +151,9 @@ export class HDF5IO {
       try {
         // Create a local mount of the IndexedDB filesystem:
         fs.mount((fs as any).filesystems.IDBFS, {}, path)
-        if (this._debug) console.warn(`[hdf5-io]: Mounted IndexedDB filesystem to ${path}`)
-        this.syncFS(true, path)
+        if (this.#debug) console.warn(`[hdf5-io]: Mounted IndexedDB filesystem to ${path}`)
+        await this.syncFS(true, path)
+        this.#resolveFilesystem(true)
         resolve(true)
       } catch (e) {
         switch ((e as any).errno) {
@@ -155,7 +163,7 @@ export class HDF5IO {
             break;
           case 10:
             console.warn(`Filesystem already mounted at ${path}`);
-            if (this._debug) console.log('[hdf5-io]: Active Filesystem', await this.list(path))
+            if (this.#debug) console.log('[hdf5-io]: Active Filesystem', await this.list(path))
             resolve(true)
             break;
           default:
@@ -167,21 +175,21 @@ export class HDF5IO {
 
   }
 
-  syncFS = (read: boolean = false, path = this._path) => {
+  syncFS = (read: boolean = false, path = this.#path) => {
 
     if (globalThis.process) return // No need to sync in nodejs
 
     path = this._convertPath(path) 
     return new Promise(async resolve => {
       await ready
-      const fs = this.reader.FS as any // Resolved filesystem type
-      if (this._debug && !read) console.warn(`[hdf5-io]: Pushing all current files in ${path} to IndexedDB`)
+      const fs = this.#reader.FS as any // Resolved filesystem type
+      if (this.#debug && !read) console.warn(`[hdf5-io]: Pushing all current files in ${path} to IndexedDB`)
       fs.syncfs(read, async (e?: Error) => {
         if (e) {
           console.error(e)
           resolve(false)
         } else {
-          if (this._debug) {
+          if (this.#debug) {
             const list = await this.list(path)
             if (read) console.warn(`[hdf5-io]: IndexedDB successfully read into ${path}!`, list)
             else console.warn(`[hdf5-io]: All current files in ${path} pushed to IndexedDB!`, list)
@@ -229,7 +237,7 @@ export class HDF5IO {
   #upload = async (files: HTMLInputElement['files'] | (Blob & {name: string})[]) => {
     if (files && files?.length) {
       return (await Promise.all(Array.from(files).map(async f => {
-        if (!this._extension || f.name.includes(this._extension)) {
+        if (!this.#extension || f.name.includes(this.#extension)) {
           let ab = await f.arrayBuffer();
           console.warn(`[hdf5-io]: Uploading ${f.name}`)
           await this.#write(f.name, ab)
@@ -244,10 +252,12 @@ export class HDF5IO {
     else return []
   }
 
-  list = async (path: string = this._path) => {
+  list = async (path: string = this.#path) => {
     path = this._convertPath(path)
 
     await ready
+    await this.#filesystem
+    
     let node;
 
     // Correction for Node.js
@@ -256,7 +266,7 @@ export class HDF5IO {
       return files
     }
     
-    try { node = ((this.reader.FS as any).lookupPath(process ? path : `.${path}`))?.node }
+    try { node = ((this.#reader.FS as any).lookupPath(path))?.node }
     catch (e) { console.warn(e) }
 
     if (node?.isFolder && node.contents) {
@@ -276,14 +286,14 @@ export class HDF5IO {
     const ab = this.arrayBuffer(file)
     if (ab) {
       await polyfills.ready
-      return new Blob([ab], { type: this._mimeType });
+      return new Blob([ab], { type: this.#mimeType });
     }
     else return undefined
   }
 
   // NOTE: Only called after resolution anyways...
   arrayBuffer = (file?: any) => {
-    const fs = this.reader.FS as any // Resolved filesystem type
+    const fs = this.#reader.FS as any // Resolved filesystem type
     return fs.readFile(file.name)
   }
 
@@ -317,7 +327,7 @@ export class HDF5IO {
           var url = globalThis.URL?.createObjectURL(blob);
           a.href = url;
           const [nameNoExtension, extension] = name.match(/(.+)\.(.+)/)
-          a.download = (extension || !this._extension) ? name : nameNoExtension + `.${this._extension}` // Add Extension
+          a.download = (extension || !this.#extension) ? name : nameNoExtension + `.${this.#extension}` // Add Extension
           a.target = "_blank";
           //globalThis.open(url, '_blank', filename);
           a.click();
@@ -358,7 +368,7 @@ export class HDF5IO {
           if (filename?.includes('.')) name = filename // If the URL has a filename with an extension, use that
         }
         if (!name) name = 'default.nwb'
-        if (this._debug) console.log(`[hdf5-io]: Registering remote file as ${name}`)
+        if (this.#debug) console.log(`[hdf5-io]: Registering remote file as ${name}`)
         return name as string
       })
   }
@@ -384,7 +394,7 @@ export class HDF5IO {
           console.warn(`Streaming the specification for ${filename}`)
           const specifications = await streamObject.specifications // NOTE: This may only be present in NWB files...
           await this.resolveStream(specifications)
-          return this.__postprocess(streamObject)//, false)
+          return this.#postprocess(streamObject)//, false)
         }
       }
 
@@ -460,7 +470,7 @@ export class HDF5IO {
 
     const tock = performance.now()
 
-    if (this._debug) console.warn(`[hdf5-io]: Fetched in ${tock - tick} ms`)
+    if (this.#debug) console.warn(`[hdf5-io]: Fetched in ${tock - tick} ms`)
 
     // await this.#write(resolvedFilename, ab) // Write the buffer
     await this.#write(resolvedFilename, ab) // Write the buffer
@@ -470,8 +480,8 @@ export class HDF5IO {
   // Iteratively Check FS to Write File
   #write = async (name: string, ab: ArrayBuffer = new ArrayBuffer(0)) => {
     const tick = performance.now()
-    await this.reader.ready
-    const fs = this.reader.FS as any
+    await this.#reader.ready
+    const fs = this.#reader.FS as any
     // fs.rmdir(name)
     try {
       await fs.writeFile(name, new Uint8Array(ab));
@@ -480,7 +490,7 @@ export class HDF5IO {
       return false
     }
     const tock = performance.now()
-    if (this._debug) console.warn(`[hdf5-io]: Wrote raw file (${name})in ${tock - tick} ms`)
+    if (this.#debug) console.warn(`[hdf5-io]: Wrote raw file (${name})in ${tock - tick} ms`)
     return true
   }
 
@@ -523,7 +533,7 @@ export class HDF5IO {
     onChange: Function = () => {},
     ) => {
       
-      if (!parent && o instanceof this.reader.File) parent = o
+      if (!parent && o instanceof this.#reader.File) parent = o
       const resolvedParent = parent as h5.File | h5.Group
 
     if (o) {
@@ -531,7 +541,7 @@ export class HDF5IO {
       const attrs = 'attrs' in o ? o.attrs : {} // Only access once when opened
 
       // Datasets
-      if (o instanceof this.reader.Dataset) {
+      if (o instanceof this.#reader.Dataset) {
         let value = aggregator[key] =this.#process(o.value, o, 'dataset', attrs) // NOTE: Must reset the aggregator here...
         Object.defineProperty(aggregator, key, {
           get:  () => value, 
@@ -546,7 +556,7 @@ export class HDF5IO {
       }
 
       // Groups
-      else if (o instanceof this.reader.Group) {
+      else if (o instanceof this.#reader.Group) {
         let keys = o.keys()
         let value = aggregator[key] = this.#process(aggregator[key] ?? {}, o, 'group', attrs) // NOTE:  Must reset the aggregator here...
 
@@ -575,7 +585,7 @@ export class HDF5IO {
         })
       }
 
-      if (o instanceof this.reader.BrokenSoftLink || o instanceof this.reader.ExternalLink || o instanceof this.reader.Datatype) return 
+      if (o instanceof this.#reader.BrokenSoftLink || o instanceof this.#reader.ExternalLink || o instanceof this.#reader.Datatype) return 
 
       // Proxy Attributes onto the object itself
       for (let a in attrs) {
@@ -648,18 +658,18 @@ export class HDF5IO {
       // Postprocess the data using an arbitrary function
       const parsed = aggregator[innerKey]
 
-      if (this._debug) console.warn(`[hdf5-io]: Parsed ${name}`) //, parsed)
+      if (this.#debug) console.warn(`[hdf5-io]: Parsed ${name}`) //, parsed)
 
       Object.defineProperty(parsed, indexedDBFilenameSymbol, { value: name, writable: false })
       Object.defineProperty(parsed, changesSymbol, { value: changes, writable: false })
 
-      resolved.file = this.__postprocess(parsed)
+      resolved.file = this.#postprocess(parsed)
 
-      if (this._debug) console.warn(`[hdf5-io]: Processed ${name}`) //, resolved.file)
+      if (this.#debug) console.warn(`[hdf5-io]: Processed ${name}`) //, resolved.file)
 
       const tock = performance.now()
 
-      if (this._debug) console.warn(`[hdf5-io]: Read file in ${tock - tick} ms`)
+      if (this.#debug) console.warn(`[hdf5-io]: Read file in ${tock - tick} ms`)
 
       this.close(name) // Close reader
 
@@ -703,7 +713,7 @@ export class HDF5IO {
 
     let reader = resolved.reader
     if (reader) reader.close() // Close the reader if it exists (to avoid multiple readers on the same file)
-    reader = new this.reader.File(name, mode); // Start by reading
+    reader = new this.#reader.File(name, mode); // Start by reading
 
     if (this.#fileFound(reader)) resolved.reader = reader
     else {
@@ -717,14 +727,14 @@ export class HDF5IO {
     }
     
     // else if (useLocalStorage && (name && resolved.file === undefined)) {
-    //   if (this._debug) console.warn(`[hdf5-io]: Returning local version from ${this._path}`)
+    //   if (this.#debug) console.warn(`[hdf5-io]: Returning local version from ${this.#path}`)
     //   this.load(name)
     // }
 
     return resolved
   }
 
-  #save = async (path: string = this._path) => {
+  #save = async (path: string = this.#path) => {
     const file = this.files.get(path)
     if (file) {
       if (file.url) throw new Error('[hdf5-io]: Cannot save streaming object to file')
@@ -738,6 +748,15 @@ export class HDF5IO {
       console.log('[hdf5-io]: No file found to save')
       return false
     }
+  }
+
+  // Get valueOf (including arrays)
+  #preprocessValue = (obj: any): any => {
+    if (obj && typeof obj === 'object') {
+      if (Array.isArray(obj)) return obj.map((o: any) => this.#preprocessValue(o))
+      else if (obj.valueOf) return obj.valueOf()
+    }
+    return obj
   }
 
 
@@ -754,23 +773,31 @@ export class HDF5IO {
       case 'dataset':
           // return // No datasets
           const p1 = parent as Group || h5.File
-          let res = value.valueOf()
-          const dataset = (p1 as any).create_dataset(name, res) //, value.shape, value.dtype);
-          const keys = Object.keys(value)
-          this.#writeObject(value, path, writable, {
-            parent: dataset, 
-            keys: keys.filter(k => !isNumeric(k)),
-            changes
-          })
+          let res = this.#preprocessValue(value); // Get valueOf
+          try {
+            const dataset = (p1 as any).create_dataset(name, res) //, value.shape, value.dtype);
+            const keys = Object.keys(value)
+            this.#writeObject(value, path, writable, {
+              parent: dataset, 
+              keys: keys.filter(k => !isNumeric(k)),
+              changes
+            })
+          } catch (e) {
+            console.error('[hdf5-io]: Failed to create dataset', path, value, e)
+          }
         // }
         break;
       case 'group':
-        const group = writable.create_group(path);
-        if (group) this.#writeObject(value, path, writable, {
-          parent: group,
-          changes
-        })
-        else console.log('[hdf5-io]: Failed to create group', path, value)
+        try {
+          const group = writable.create_group(path);
+          if (group) this.#writeObject(value, path, writable, {
+            parent: group,
+            changes
+          })
+          else console.log('[hdf5-io]: Failed to create group', path, value)
+        } catch (e) {
+          console.error('[hdf5-io]: Failed to create group', path, value, e)
+        }
         break;
       case 'attribute':
         if (value) {
@@ -778,13 +805,17 @@ export class HDF5IO {
           const typeOf = typeof attrVal
           if (typeOf === 'object' && !attrVal.constructor) break; // Null object (TODO: Actually use in this library for things...)
           // if (typeOf === 'bigint') attrVal = Number(attrVal) // Convert BigInt to Number
-          const res = attrVal?.valueOf ? attrVal.valueOf() : attrVal
+          const res = this.#preprocessValue(attrVal);
           // const dtype = attrVal.dtype
           // const hasType = dtype && dtype !== 'unknown'
           // const spec = hasType ? [attrVal.shape, dtype] : []
-
-          parent.create_attribute(name, res) //, attrVal.shape, dtype) // ...spec); 
-        } else console.log('[hdf5-io]: Ignoring attribute', name, value)
+          try {
+            parent.create_attribute(name, res) //, attrVal.shape, dtype) // ...spec); 
+          } catch (e) {
+            console.error('[hdf5-io]: Failed to create attribute', path, res, value, e)
+          }
+        } 
+        //else if (this.#debug) console.warn('[hdf5-io]: Ignoring attribute', name, value)
         break;
       default:
         console.error('Ignore', name, value)
@@ -833,7 +864,7 @@ export class HDF5IO {
         let type: 'dataset' | 'group' | 'attribute' | any = null
 
         if (!(typeof value === 'function')) {
-          if (parent instanceof this.reader.Dataset) type = 'attribute'
+          if (parent instanceof this.#reader.Dataset) type = 'attribute'
           else if (typeof value === 'object') {
             if (value[isAttribute]) type = 'attribute'
             else if (value[isDataset]) type = 'dataset'
@@ -857,8 +888,9 @@ export class HDF5IO {
     if (!name) throw new Error(`[hdf5-io]: Invalid file name ${name}`)
     if (o[isStreaming]) throw new Error('[hdf5-io]: Cannot write streaming object to file')
 
-    const changes = o[changesSymbol]
-    if (changes && !Object.keys(changes).length) {
+    // Safety Feature in Node.js
+    const changes = o[changesSymbol] 
+    if (globalThis.process && changes && !Object.keys(changes).length) {
       console.log('[hdf5-io]: No changes to save')
       return name
     }
@@ -872,7 +904,7 @@ export class HDF5IO {
       mode: 'w' // NOTE: This needs to be 'a', but that doesn't currently support writing existing attributes / datasets
     }) // Create if it doesn't exist
     
-    if (this._debug) console.log('[hdf5-io]: Writing file', name)//, file, o)
+    if (this.#debug) console.log('[hdf5-io]: Writing file', name)//, file, o)
 
     if (this.#fileFound(file)) {
 
@@ -902,7 +934,7 @@ export class HDF5IO {
       // else this.#writeObject(o, undefined, resolved.reader) // Only write new objects (others are automatically updated)
 
       const tock = performance.now()
-      if (this._debug) console.warn(`[hdf5-io]: Wrote file object to browser filesystem in ${tock - tick} ms`)
+      if (this.#debug) console.warn(`[hdf5-io]: Wrote file object to browser filesystem in ${tock - tick} ms`)
     }
     
     const saved = await this.#save(name) // Save when writing
