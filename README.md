@@ -61,5 +61,9 @@ const object = {
 }
 ```
 
+## Known Issues
+- Building with both `esbuild` and `vite` causes issues with the `h5wasm` library because the correct filesystems become inaccessible.
+    - We might have to bundle each file (e.g. iife, esm, node) separately using different build methods
+
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).

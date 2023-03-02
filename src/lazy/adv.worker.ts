@@ -1,4 +1,6 @@
 import { File, ready, Group, Dataset, BrokenSoftLink, ExternalLink } from "h5wasm";
+// import { File, ready, Group, Dataset, BrokenSoftLink, ExternalLink } from "../../node_modules/h5wasm/src/hdf5_hl";
+
 import  { createLazyFile } from './lazyFileLRU';
 import * as global from './global'
 import { ArbitraryObject } from "../types";

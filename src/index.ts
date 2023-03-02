@@ -1,5 +1,7 @@
 import * as h5 from "h5wasm";
 import { ACCESS_MODES, Dataset, Group } from "h5wasm"
+// import * as h5 from "../node_modules/h5wasm/src/hdf5_hl";
+// import { ACCESS_MODES, Dataset, Group } from "../node_modules/h5wasm/src/hdf5_hl";
 import { indexedDBFilenameSymbol, isDataset, isGroup, isAttribute, isStreaming, changesSymbol } from "./globals";
 
 import FileProxy, { FileProxyOptions } from "./lazy/FileProxy";
@@ -282,19 +284,11 @@ export class HDF5IO {
     else return []
   }
 
-  blob = async (file?: any) => {
-    const ab = this.arrayBuffer(file)
-    if (ab) {
-      await polyfills.ready
-      return new Blob([ab], { type: this.#mimeType });
-    }
+  // NOTE: Browser-Only
+  #blob = async (file?: any) => {
+    const ab = (this.#reader.FS as any).readFile(file.name)
+    if (ab) return new Blob([ab], { type: this.#mimeType });
     else return undefined
-  }
-
-  // NOTE: Only called after resolution anyways...
-  arrayBuffer = (file?: any) => {
-    const fs = this.#reader.FS as any // Resolved filesystem type
-    return fs.readFile(file.name)
   }
 
   // Allow Download of NWB-Formatted HDF5 Files from the Browser
@@ -313,7 +307,7 @@ export class HDF5IO {
       if (!name) name = file.name // Get Default Name
       file.reader.flush();
 
-      let blob = await this.blob(file)
+      let blob = await this.#blob(file)
       if (blob) {
         var a = document.createElement("a");
         document.body.appendChild(a);
@@ -484,7 +478,8 @@ export class HDF5IO {
     const fs = this.#reader.FS as any
     // fs.rmdir(name)
     try {
-      await fs.writeFile(name, new Uint8Array(ab));
+      if (globalThis.process) polyfills.fs.writeFileSync(name, new Uint8Array(ab))
+      else await fs.writeFile(name, new Uint8Array(ab));
     } catch (e) {
       console.error(`[hdf5-io]: Failed to write file ${name} to FS`, e)
       return false
@@ -614,7 +609,10 @@ export class HDF5IO {
 
   // ---------------------- Core HDF5IO Methods ----------------------
 
-  #fileFound = (reader: any) =>  Number((reader.reader ?? reader)?.file_id) != -1
+  #fileFound = (reader: any) =>  {
+    const val = (reader.reader ?? reader)?.file_id
+    return val && Number(val) != -1
+  }
 
   load = async (
     name?: string | null,
@@ -631,7 +629,7 @@ export class HDF5IO {
     try { isRemote = new URL(name) } catch { }
     if (isRemote) return this.fetch(name, options.filename, options)
 
-    let file = await this.get(name, { force: true, mode: 'r' }) //, { useLocalStorage: options.useLocalStorage })
+    let file = await this.get(name, { mode: 'r' }) //, { useLocalStorage: options.useLocalStorage })
     if (this.#fileFound(file)) {
 
       const resolved = file as ResolvedFileObject
@@ -687,7 +685,6 @@ export class HDF5IO {
     // useLocalStorage?: Options['useLocalStorage']
     create?: boolean
     // clear?: boolean
-    force?: true
   } = {}): Promise<ResolvedFileObject | undefined> => {
 
     let { 
@@ -713,10 +710,12 @@ export class HDF5IO {
 
     let reader = resolved.reader
     if (reader) reader.close() // Close the reader if it exists (to avoid multiple readers on the same file)
+    
     reader = new this.#reader.File(name, mode); // Start by reading
 
     if (this.#fileFound(reader)) resolved.reader = reader
     else {
+      console.log('[hdf5-io]: Could not open file', name, reader)
       this.files.delete(name) // Remove the file from the cache
       if (create) {
         const success = await this.#write(name)
