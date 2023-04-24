@@ -9,6 +9,7 @@ import process from 'process'
 // import * as hdf5 from '../dist/index.esm';
 
 import * as hdf5 from '../src/index';
+import { beforeAll, describe, expect, test } from 'vitest';
 
 describe(`Can read and write HDF5 files using JavaScript objects`, () => {
 

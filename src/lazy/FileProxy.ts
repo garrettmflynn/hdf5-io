@@ -1,6 +1,5 @@
 import { isStreaming } from '../globals'
 import { Callbacks } from '../types'
-import workerURI from './adv.worker'
 import * as global from './global'
 
 export type FileProxyOptions = {
@@ -30,8 +29,8 @@ class FileProxy {
 
         // Initialize Worker
         if (globalThis.Worker) {
-            if (typeof workerURI === 'string') {
-            this.worker = new Worker(workerURI)
+            this.worker = new Worker(new URL('./adv.worker.ts', import.meta.url), { type: 'module' })
+
             this.worker.addEventListener("message", (event) => {
                 const info = this.#toResolve[event.data[global.lazyFileProxyId]]
                 if (info) info.resolve(event.data.payload)
@@ -40,7 +39,6 @@ class FileProxy {
                 
                 else console.error('Message was not awaited...')
             })
-        } else console.error('Worker URI is not a string')
         } else console.log("Workers are not supported");
     }
 

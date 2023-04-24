@@ -1,5 +1,5 @@
-import HDF5IO from "./src/index";
-// import HDF5IO from "./dist/index.esm";
+// import HDF5IO from "./src/index";
+import HDF5IO from "./dist/index.es";
 
 import * as visualscript from 'visualscript'
 

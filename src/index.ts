@@ -135,7 +135,7 @@ export class HDF5IO {
       const cwd = polyfills.process.cwd()
       this.#path = (cwd.slice(0, 25) === path.slice(0, 25)) ? path : `${cwd}${path}` // Full path in local filesystem
       if (!polyfills.fs.existsSync(this.#path)) polyfills.fs.mkdirSync(this.#path);
-      polyfills.process.chdir(`.${path}`);
+      try { polyfills.process.chdir(`.${path}`); } catch (e) {  } // Not supported in workers
       this.#resolveFilesystem(true)
       return true
     }
@@ -338,6 +338,7 @@ export class HDF5IO {
     if (!name) name = await this.#resolveFilenameFromURL(url) // Resolve name if undefined
     const proxy = new FileProxy(url, options, callbacks)
     const file = await proxy.load()
+
     Object.defineProperty(file, indexedDBFilenameSymbol, { value: name, writable: false })
     this.files.set(name, { name, file, url }) // undefined === capable of being loaded
     return file
@@ -354,7 +355,9 @@ export class HDF5IO {
   #resolveFilenameFromURL = async (url: string) => {
       const controller = new AbortController()
       const signal = controller.signal
-      return await fetch(url, { signal }).then((res) => {
+
+      let promise = fetch(url, { signal }).catch(() => fetch(url)) // Try again without aborting (vitest)
+      return await promise.then(async (res) => {
         let name = res.headers.get('content-disposition')
         controller.abort()
         if (!name) {
