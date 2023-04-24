@@ -344,12 +344,16 @@ export class HDF5IO {
     return file
   }
 
-  resolveStream = async (o: any) => {
-    for (let key in o) {
-      const res = await o[key]
-      if (res instanceof Object) await this.resolveStream(res)
+  // Return resolved objects from a stream
+  resolveStream = async (o: any | Promise<any>) => {
+    const resO = await o
+    let newO: {[key: string]: any} = {}
+    for (let key in resO) {
+      const res = await resO[key]
+      if (res instanceof Object) newO[key] = await this.resolveStream(res)
+      else newO[key] = res
     }
-    return o
+    return newO
   }
 
   #resolveFilenameFromURL = async (url: string) => {
@@ -387,11 +391,7 @@ export class HDF5IO {
         })
   
         if (streamObject !== null) {
-  
-          console.warn(`Streaming the specification for ${filename}`)
-          const specifications = await streamObject.specifications // NOTE: This may only be present in NWB files...
-          await this.resolveStream(specifications)
-          return this.#postprocess(streamObject)//, false)
+          return await this.#postprocess(streamObject)//, false)
         }
       }
 
@@ -664,7 +664,7 @@ export class HDF5IO {
       Object.defineProperty(parsed, indexedDBFilenameSymbol, { value: name, writable: false })
       Object.defineProperty(parsed, changesSymbol, { value: changes, writable: false })
 
-      resolved.file = this.#postprocess(parsed)
+      resolved.file = await this.#postprocess(parsed)
 
       if (this.#debug) console.warn(`[hdf5-io]: Processed ${name}`) //, resolved.file)
 
