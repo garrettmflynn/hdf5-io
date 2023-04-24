@@ -1,10 +1,10 @@
 {
   "name": "hdf5-io",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Simple utility for reading / writing HDF5 files",
   "main": "dist/index.umd.js",
   "module": "dist/index.es.js",
-  "types": "dist/src/index.d.ts",
+  "types": "dist/index.d.ts",
   "type": "module",
   "exports": {
     "import": "./dist/index.es.js",
