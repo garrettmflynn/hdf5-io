@@ -13,27 +13,14 @@ export default defineConfig({
 
   build: {
     target: 'esnext',
-    minify: false,
+    // minify: false,
     lib: {
       entry: 'src/index',
       name: 'hdf5',
       fileName: (format) => `index.${format}.js`,
     },
     rollupOptions: {
-      external: [
-        "node:fs",
-        "node:buffer",
-        "node:util",
-        "node:stream",
-      ],
       output: {
-        globals: {
-          "node:fs": "fs",
-          "node:buffer": "buffer",
-          "node:util": "util",
-          "node:stream": "stream",
-        },
-        inlineDynamicImports: true,
         exports: 'named'
       },
     }
@@ -46,6 +33,5 @@ export default defineConfig({
   plugins: [
     dts(),
     wasm(),
-    // topLevelAwait()
   ]
 });
