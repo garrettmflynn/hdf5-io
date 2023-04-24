@@ -11,7 +11,7 @@ import * as polyfills from './polyfills'
 
 export type IOInput = {
   debug?: boolean,
-  postprocess?: Function,
+  postprocess?: (info: ArbitraryObject, transformToSnakeCase?: boolean) => ArbitraryObject | Promise<ArbitraryObject>,
   reader?: typeof h5,
   extension?: string,
   mimeType?: string,
@@ -94,7 +94,7 @@ export class HDF5IO {
 
   #path: string = globalThis.process ? '/' : "/hdf5-io" // No path for nodejs
   #debug: boolean;
-  #postprocess: Function = (o: any) => o // Returns processed file object
+  #postprocess: IOInput['postprocess'] = (o: any) => o // Returns processed file object
 
   #extension?: string // = 'hdf5'
   #mimeType: string = 'application/x-hdf5'
