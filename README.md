@@ -62,8 +62,15 @@ const object = {
 ```
 
 ## Known Issues
-- Building with both `esbuild` and `vite` causes issues with the `h5wasm` library because the correct filesystems become inaccessible.
-    - We might have to bundle each file (e.g. iife, esm, node) separately using different build methods
+- Using this library again with Vite will require you to specify `hdf5-io` as excluded from the optimized dependencies: 
+```javascript
+// vite.config.js
+export default defineConfig({
+    optimizeDeps: {
+        exclude: ['hdf5-io']
+    }
+})
+```
 
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).

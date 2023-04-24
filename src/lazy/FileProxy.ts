@@ -2,8 +2,6 @@ import { isStreaming } from '../globals'
 import { Callbacks } from '../types'
 import * as global from './global'
 
-import workerURL from './adv.worker?worker&url' // Works when hdf5-io is used in a 3rd party script
-
 export type FileProxyOptions = {
     LRUSize?: number
     requestChunkSize?: number
@@ -31,7 +29,7 @@ class FileProxy {
 
         // Initialize Worker
         if (globalThis.Worker) {
-            this.worker = new Worker(workerURL, { type: 'module' })
+            this.worker = new Worker(new URL('./adv.worker.ts', import.meta.url), { type: 'module' })
 
             this.worker.addEventListener("message", (event) => {
                 const info = this.#toResolve[event.data[global.lazyFileProxyId]]
