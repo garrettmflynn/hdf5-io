@@ -2,6 +2,8 @@ import { isStreaming } from '../globals'
 import { Callbacks } from '../types'
 import * as global from './global'
 
+import workerURL from './adv.worker.ts?worker&url'
+
 export type FileProxyOptions = {
     LRUSize?: number
     requestChunkSize?: number
@@ -29,7 +31,7 @@ class FileProxy {
 
         // Initialize Worker
         if (globalThis.Worker) {
-            this.worker = new Worker(new URL('./adv.worker.ts', import.meta.url), { type: 'module' })
+            this.worker = new Worker(workerURL, {type: 'module'}) //new Worker(new URL('./adv.worker.ts', import.meta.url), { type: 'module' })
 
             this.worker.addEventListener("message", (event) => {
                 const info = this.#toResolve[event.data[global.lazyFileProxyId]]

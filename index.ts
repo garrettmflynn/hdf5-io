@@ -1,6 +1,8 @@
 import HDF5IO from "./src/index";
 // import HDF5IO from "./dist/index.es";
 
+// const HDF5IO = hdf5.default
+
 import * as visualscript from 'visualscript'
 
 // Initialize HDF5IO Instance

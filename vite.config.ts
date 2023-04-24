@@ -19,11 +19,11 @@ export default defineConfig({
       name: 'hdf5',
       fileName: (format) => `index.${format}.js`,
     },
-    rollupOptions: {
-      output: {
-        exports: 'named'
-      },
-    }
+    // rollupOptions: {
+    //   output: {
+    //     exports: 'named'
+    //   },
+    // }
   },
 
   test: {
