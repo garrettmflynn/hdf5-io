@@ -71,6 +71,14 @@ export const objectify = (value: any) => {
     return resolvedValue
 }
 
+// export const objectify = (value: any) => {
+//     if (value != undefined) {
+//         const newObj = new Object(value)
+//         if (newObj != value) return newObj as extendedObject
+//     }
+//     return value
+// }
+
 
 // // Extend a base classes
 // export const extend = (name, baseClass) => {

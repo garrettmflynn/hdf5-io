@@ -9,9 +9,10 @@ import { ArbitraryObject, Callbacks } from "./types";
 
 import * as polyfills from './polyfills'
 
+type PostprocessFunction = (info: ArbitraryObject, transformToSnakeCase?: boolean) => ArbitraryObject | Promise<ArbitraryObject>
 export type IOInput = {
   debug?: boolean,
-  postprocess?: (info: ArbitraryObject, transformToSnakeCase?: boolean) => ArbitraryObject | Promise<ArbitraryObject>,
+  postprocess?: PostprocessFunction,
   reader?: typeof h5,
   extension?: string,
   mimeType?: string,
@@ -94,7 +95,7 @@ export class HDF5IO {
 
   #path: string = globalThis.process ? '/' : "/hdf5-io" // No path for nodejs
   #debug: boolean;
-  #postprocess: IOInput['postprocess'] = (o: any) => o // Returns processed file object
+  #postprocess: PostprocessFunction = (o: any) => o // Returns processed file object
 
   #extension?: string // = 'hdf5'
   #mimeType: string = 'application/x-hdf5'
@@ -350,7 +351,7 @@ export class HDF5IO {
     let newO: {[key: string]: any} = {}
     for (let key in resO) {
       const res = await resO[key]
-      if (res instanceof Object) newO[key] = await this.resolveStream(res)
+      if (res?.constructor === Object) newO[key] = await this.resolveStream(res) // Recurse on standard objects
       else newO[key] = res
     }
     return newO
@@ -661,10 +662,11 @@ export class HDF5IO {
 
       if (this.#debug) console.warn(`[hdf5-io]: Parsed ${name}`) //, parsed)
 
-      Object.defineProperty(parsed, indexedDBFilenameSymbol, { value: name, writable: false })
-      Object.defineProperty(parsed, changesSymbol, { value: changes, writable: false })
+      const processed = await this.#postprocess(parsed)
+      Object.defineProperty(processed, indexedDBFilenameSymbol, { value: name, writable: false })
+      Object.defineProperty(processed, changesSymbol, { value: changes, writable: false })
 
-      resolved.file = await this.#postprocess(parsed)
+      resolved.file = processed as FileType
 
       if (this.#debug) console.warn(`[hdf5-io]: Processed ${name}`) //, resolved.file)
 
