@@ -24,7 +24,8 @@ import { getAllPropertyNames, objectify } from "./utils/properties";
 export * from './utils/properties' // Exporting all property helpers
 export * from './globals' // Exporting all globals
 
-export let ready = Promise.all([polyfills.ready, h5.ready])
+// export let ready = Promise.all([polyfills.ready, h5.ready])
+export let ready = h5.ready
 
 const ignore = ['constructor', 'slice'] // NOTE: Slice doesn't actually work for some reason...
 const carryAllProperties = (target: any, source: any, configure?: string[] | boolean) => {

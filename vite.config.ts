@@ -11,6 +11,14 @@ export default defineConfig({
     format: 'es'
   },
 
+  resolve: {
+    alias: {
+      fs: 'rollup-plugin-node-polyfills/polyfills/fs',
+      worker_threads: 'rollup-plugin-node-polyfills/polyfills/worker_threads',
+      buffer: 'rollup-plugin-node-polyfills/polyfills/buffer',
+    },
+  },
+
   build: {
     target: 'esnext',
     // minify: false,

@@ -1,7 +1,7 @@
 // import './tests/node/polyfill.js' // There's an issue with tinybuild where it expects to have a Blob class but doesn't provide it in Node.js
 // import * as hdf5 from './dist/index.umd.js';
 globalThis.blob = require('buffer').Blob
-const hdf5 = require('./dist/index.umd.cjs')
+const hdf5 = require('./dist/index.umd.js')
 
 const io = new hdf5.HDF5IO()
 io.initFS('hdf5-test').then(async () => {
