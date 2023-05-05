@@ -342,7 +342,9 @@ export class HDF5IO {
 
     Object.defineProperty(file, indexedDBFilenameSymbol, { value: name, writable: false })
     this.files.set(name, { name, file, url }) // undefined === capable of being loaded
-    return file
+
+      
+    return await this.#postprocess(file)
   }
 
   // Return resolved objects from a stream
@@ -386,14 +388,10 @@ export class HDF5IO {
 
       // Use streaming if applicable
       if (options.useStreaming) {
-        const streamObject = await this.stream(url, typeof options.useStreaming === 'object' ? options.useStreaming : undefined, {
+        return await this.stream(url, typeof options.useStreaming === 'object' ? options.useStreaming : undefined, {
           successCallback: options.successCallback,
           progressCallback: options.progressCallback,
         })
-  
-        if (streamObject !== null) {
-          return await this.#postprocess(streamObject)//, false)
-        }
       }
 
         
