@@ -6,7 +6,7 @@ import process from 'process'
 
 
 // import './node/polyfill' // There's an issue with tinybuild where it expects to have a Blob class but doesn't provide it in Node.js
-// import * as hdf5 from '../dist/index.esm';
+// import * as hdf5 from '../dist/index.es';
 
 import * as hdf5 from '../src/index';
 import { beforeAll, describe, expect, test } from 'vitest';
@@ -33,7 +33,6 @@ beforeAll(async () => {
 
 const name = 'FergusonEtAl2015'
 const filename = `${name}.nwb`
-
 
 const dataset = new String('this is a dataset') as any
 dataset.metadata = 'this is a dataset metadata'
@@ -96,16 +95,24 @@ test('changes to local file can be saved', async () => {
 test('remote file can ovewrite file in local filesystem', async () => {
   // try { fs.unlinkSync(path.join(fulldir, filename)) } catch (e) { } // This allows the test to be run successfully
   const file = await io.load(`https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/${name}/${filename}`)
-  expect(file.acquisition).toBeInstanceOf(Object) // File is an object
-  expect(file.nwb_version).toBeInstanceOf(Object) // File is an object
-
+  expect(file.acquisition).toBeInstanceOf(Object) // Acquisition is an object
+  expect(file.nwb_version).toBeInstanceOf(String) // Version is an object
 })
 
-// // // NOTE: Workers not supported in Jest
-// // test('remote file can be streamed', async () => {
-// //   const file = await io.load(`https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/${name}/${filename}`, { useStreaming: true })
-// //   expect(file).toBeInstanceOf(Object) // File is an object
-// // })
+// test('remote file can modified after download', async () => {
+//   const file = await io.load(filename)
+//   const newStartTime = new String((new Date()).toISOString())
+//   file.session_start_time = newStartTime
+//   const reloaded = await io.load(await io.save(file)) // NOTE: Save stalls the tests
+//   expect(reloaded.session_start_time).toEqual(newStartTime)
+// })
+
+
+// // NOTE: Worker URLs are not correct with Vite
+// test('remote file can be streamed', async () => {
+//   const file = await io.load(`https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/${name}/${filename}`, { useStreaming: true })
+//   expect(file).toBeInstanceOf(Object) // File is an object
+// })
 
 
 })

@@ -11,14 +11,6 @@ export default defineConfig({
     format: 'es'
   },
 
-  resolve: {
-    alias: {
-      fs: 'rollup-plugin-node-polyfills/polyfills/fs',
-      worker_threads: 'rollup-plugin-node-polyfills/polyfills/worker_threads',
-      buffer: 'rollup-plugin-node-polyfills/polyfills/buffer',
-    },
-  },
-
   build: {
     target: 'esnext',
     // minify: false,
@@ -27,15 +19,19 @@ export default defineConfig({
       name: 'hdf5',
       fileName: (format) => `index.${format}.js`,
     },
-    // rollupOptions: {
-    //   output: {
-    //     exports: 'named'
-    //   },
-    // }
+    rollupOptions: {
+        external: [
+          "node:buffer",
+          "node:fs",
+          "node:worker_threads"
+        ],
+    }
   },
 
   test: {
-    environment: 'jsdom'
+    environment: 'jsdom',
+    testTimeout: 10000,
+    threads: false
   },
 
   plugins: [

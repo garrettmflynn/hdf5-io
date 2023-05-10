@@ -24,7 +24,6 @@ import { getAllPropertyNames, objectify } from "./utils/properties";
 export * from './utils/properties' // Exporting all property helpers
 export * from './globals' // Exporting all globals
 
-// export let ready = Promise.all([polyfills.ready, h5.ready])
 export let ready = h5.ready
 
 const ignore = ['constructor', 'slice'] // NOTE: Slice doesn't actually work for some reason...
@@ -111,7 +110,7 @@ export class HDF5IO {
     if (options?.postprocess) this.#postprocess = options.postprocess;
     if (options?.reader) {
       this.#reader = options.reader;
-      ready = Promise.all([polyfills.ready, this.#reader.ready]) // Ensure new reader is ready
+      ready = this.#reader.ready // Ensure new reader is ready
     }
 
     // Ensure BigInto Support
@@ -384,8 +383,6 @@ export class HDF5IO {
     filename: Options['filename'],
     options: FetchOptions = {}
   ) => {
-
-    await polyfills.ready
 
       // Use streaming if applicable
       if (options.useStreaming) {

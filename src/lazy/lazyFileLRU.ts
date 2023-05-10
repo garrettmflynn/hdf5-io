@@ -270,8 +270,6 @@ export class LazyUint8Array {
       else {
         console.warn('Falling back to aborted GET')
 
-        await polyfills.ready
-
         const controller = new AbortController();
         const signal = controller.signal;
         const response = await fetch(url, { signal }).catch(this.#ready.reject)
