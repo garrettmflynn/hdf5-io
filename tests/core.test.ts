@@ -4,8 +4,6 @@
 import fs from 'fs'
 import process from 'process'
 
-
-// import './node/polyfill' // There's an issue with tinybuild where it expects to have a Blob class but doesn't provide it in Node.js
 // import * as hdf5 from '../dist/index.es';
 
 import * as hdf5 from '../src/index';

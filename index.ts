@@ -1,6 +1,7 @@
 import HDF5IO from "./src/index";
 // import HDF5IO from "./dist/index.es";
 
+// // Get IO Object from the Script Tag
 // const HDF5IO = hdf5.default
 
 import * as visualscript from 'visualscript'

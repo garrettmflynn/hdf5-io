@@ -13,7 +13,7 @@ type PostprocessFunction = (info: ArbitraryObject, transformToSnakeCase?: boolea
 export type IOInput = {
   debug?: boolean,
   postprocess?: PostprocessFunction,
-  reader?: typeof h5,
+  // reader?: typeof h5,
   extension?: string,
   mimeType?: string,
   path?: string,
@@ -108,10 +108,6 @@ export class HDF5IO {
   constructor(options: IOInput = {}) {
     this.#debug = options.debug ?? false;
     if (options?.postprocess) this.#postprocess = options.postprocess;
-    if (options?.reader) {
-      this.#reader = options.reader;
-      ready = this.#reader.ready // Ensure new reader is ready
-    }
 
     // Ensure BigInto Support
     (BigInt.prototype as any).toJSON = function () { return this.toString() }
@@ -129,17 +125,17 @@ export class HDF5IO {
 
 
     this.#path = path = this._convertPath(path) // set latest path
-
-    // Handle Node.js Filesystem Initialization
+    
     if (globalThis.process) {
       await ready
-      const cwd = polyfills.process.cwd()
+      const cwd = process.cwd()
       this.#path = (cwd.slice(0, 25) === path.slice(0, 25)) ? path : `${cwd}${path}` // Full path in local filesystem
       if (!polyfills.fs.existsSync(this.#path)) polyfills.fs.mkdirSync(this.#path);
-      try { polyfills.process.chdir(`.${path}`); } catch (e) {  } // Not supported in workers
+      try { process.chdir(`.${path}`); } catch (e) {  } // Not supported in workers
       this.#resolveFilesystem(true)
       return true
     }
+
 
     // Waits for filesystem operations to complete
     return new Promise(async resolve => {
@@ -153,6 +149,7 @@ export class HDF5IO {
 
       try {
         // Create a local mount of the IndexedDB filesystem:
+        console.log((fs as any).filesystems)
         fs.mount((fs as any).filesystems.IDBFS, {}, path)
         if (this.#debug) console.warn(`[hdf5-io]: Mounted IndexedDB filesystem to ${path}`)
         await this.syncFS(true, path)
@@ -262,12 +259,6 @@ export class HDF5IO {
     await this.#filesystem
     
     let node;
-
-    // Correction for Node.js
-    if (globalThis.process) {
-      const files = polyfills.fs.readdirSync(path);
-      return files
-    }
     
     try { node = ((this.#reader.FS as any).lookupPath(path))?.node }
     catch (e) { console.warn(e) }
@@ -466,7 +457,6 @@ export class HDF5IO {
 
     if (this.#debug) console.warn(`[hdf5-io]: Fetched in ${tock - tick} ms`)
 
-    // await this.#write(resolvedFilename, ab) // Write the buffer
     await this.#write(resolvedFilename, ab) // Write the buffer
     return await this.load(resolvedFilename) // Read the file into an object
   }
@@ -476,10 +466,8 @@ export class HDF5IO {
     const tick = performance.now()
     await this.#reader.ready
     const fs = this.#reader.FS as any
-    // fs.rmdir(name)
     try {
-      if (globalThis.process) polyfills.fs.writeFileSync(name, new Uint8Array(ab))
-      else await fs.writeFile(name, new Uint8Array(ab));
+      await fs.writeFile(name, new Uint8Array(ab));
     } catch (e) {
       console.error(`[hdf5-io]: Failed to write file ${name} to FS`, e)
       return false
@@ -710,8 +698,11 @@ export class HDF5IO {
     const resolved = o as ResolvedFileObject
 
     let reader = resolved.reader
-    if (reader) reader.close() // Close the reader if it exists (to avoid multiple readers on the same file)
-    
+    if (reader) {
+      console.error('CLOSING!')
+      reader.close() // Close the reader if it exists (to avoid multiple readers on the same file)
+    }
+
     reader = new this.#reader.File(name, mode); // Start by reading
 
     if (this.#fileFound(reader)) resolved.reader = reader
@@ -842,8 +833,6 @@ export class HDF5IO {
         changes = {}
       } = options
 
-      // console.warn('Checking...', path)
-      // if (firstAcquisition && limit && path && path.includes(firstAcquisition.slice(0,5)) && !path.includes(firstAcquisition)) return // Only save the information for first acquisition
 
       keys.forEach(k => {
 
@@ -913,25 +902,6 @@ export class HDF5IO {
       const tick = performance.now()
 
       this.#writeObject(o, undefined, resolved.reader, { changes }) // Writes changes preferentially to the previous file values
-
-      // // Just Changes
-      // if (changes) {
-      //   for (let path in changes) {
-      //     for (let name in changes[path]) {
-      //       const { value, type } = changes[path][name].slice(-1)[0] // Get latest change
-
-      //       const parent = path === '/' ? resolved.reader as h5.File : resolved.reader.get(path) as h5.Group
-      //       if (parent) this.#writeChange(path, name, value, type, resolved.reader, parent)
-      //       else {
-      //         console.warn('[hdf5-io]: Failed to write change', path, name, value, type, resolved.reader, parent, resolved.reader.get('/group/dataset'), resolved.reader.get('group/dataset'), resolved.reader.get('group'))
-      //         // throw new Error('[hdf5-io]: Failed to write change')
-      //       }
-      //       changes[path][name] = [] // Clear changes
-      //     }
-      //   }
-      // }
-      
-      // else this.#writeObject(o, undefined, resolved.reader) // Only write new objects (others are automatically updated)
 
       const tock = performance.now()
       if (this.#debug) console.warn(`[hdf5-io]: Wrote file object to browser filesystem in ${tock - tick} ms`)

@@ -23,7 +23,7 @@ export default defineConfig({
         external: [
           "node:buffer",
           "node:fs",
-          "node:worker_threads"
+          "web-worker"
         ],
     }
   },
