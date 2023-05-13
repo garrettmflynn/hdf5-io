@@ -780,8 +780,6 @@ export class HDF5IO {
           const p1 = parent as h5.Group || h5.File
           let res = this.#preprocessValue(value); // Get valueOf
           try {
-
-            const got = p1.get(name)
             const dataset = (p1 as any).create_dataset(name, res) //, value.shape, value.dtype);
             this.#writeObject(value, path, writable, {
               parent: dataset, 

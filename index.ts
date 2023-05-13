@@ -1,9 +1,10 @@
 const postprocess = (object: any) => object // Modify HDF5 file object before returning
 const debug = true
 
-// import HDF5IO from "./src/index";
-// // import HDF5IO from "./dist/index.es";
-const HDF5IO = hdf5.default
+import HDF5IO from "./src/index";
+// import HDF5IO from "./dist/index.es";
+// const HDF5IO = hdf5.default
+
 const io = new HDF5IO({ postprocess, debug })
 
 import * as visualscript from 'visualscript'
