@@ -3,16 +3,20 @@
 
 import fs from 'fs'
 import process from 'process'
-
-// NOTE: The distribution messes with all of the file management for h5wasm
-// import * as hdf5 from '../dist/index.es';
-import * as h5 from "h5wasm"; // NOTE: Have to load this externally for distribution
-
-import * as hdf5 from '../src/index';
 import { beforeAll, describe, expect, test } from 'vitest';
 
+import * as hdf5 from '../src/index';
+let io = new hdf5.HDF5IO()
+
+// // NOTE: The distribution messes with all of the file management for h5wasm
+// import * as hdf5 from '../dist/index.es';
+// import * as h5 from "h5wasm"; // NOTE: Have to load this externally for distribution
+// let io = new hdf5.HDF5IO({ h5 })
+
+const saveDir = 'hdf5-test'
+
 const newFile = 'test.hdf5'
-const existingFile = 'files/FergusonEtAl2015.nwb'
+const existingFile = '../files/FergusonEtAl2015.nwb' // Relative to base directory
 const url = 'https://raw.githubusercontent.com/OpenSourceBrain/NWBShowcase/master/FergusonEtAl2015/FergusonEtAl2015_PYR5_rebound.nwb'
 
 const dataset = new String('this is a dataset') as any
@@ -35,27 +39,13 @@ const newMetadata = 'This is new metadata'
 
 describe(`Can read and write HDF5 files using JavaScript objects`, () => {
 
-  // Initialize HDF5IO instance (all optional parameters
-  let io: any;
-
-  const dir = 'hdf5-test'
-  const fulldir = `${process.cwd()}/${dir}`
-
   beforeAll(async () => {
-    if (fs.existsSync(fulldir)) fs.rmSync(fulldir, { recursive: true }) // Delete any existing test directory
-
-    io = new hdf5.HDF5IO({
-      // h5 
-    })
-    await io.initFS(dir) // initialize local filesystem // NOTE: This errors on fs.mkdir
-
-    // const file = await io.load(newFile)
-    // console.log('Test Previous Fetched', file, path)
-
+    if (fs.existsSync(saveDir)) fs.rmSync(saveDir, { recursive: true }) // Delete any existing test directory
+    await io.initFS(saveDir) // initialize local filesystem
   })
 
   test('existing file can be loaded', async () => {
-    const loaded = await io.load(`${process.cwd()}/${existingFile}`)
+    const loaded = await io.load(existingFile)
     expect(loaded.acquisition).toBeInstanceOf(Object) // Acquisition is an object
     expect(loaded.nwb_version).toBeInstanceOf(String) // Version is an object
   })

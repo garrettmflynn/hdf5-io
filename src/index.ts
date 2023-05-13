@@ -98,6 +98,8 @@ export class HDF5IO {
   #mimeType: string = 'application/x-hdf5'
   #h5 = h5
 
+  #basePath: string = globalThis.process ? process.cwd() : ''
+
   #resolveFilesystem: Function
   #filesystem = new Promise(resolve => this.#resolveFilesystem = resolve)
 
@@ -113,13 +115,9 @@ export class HDF5IO {
   }
 
   // ---------------------- Local Filestorage Utilities ----------------------
-
-  #basePath: string = ''
-
-  // Ensure path has slash at the front
-  _convertPath = (path: string) => {
-    const hasSlash = path[0] === '/'
-    if (hasSlash) return path // Absolute path
+  #convertPath = (path: string) => {
+    if (path[0] === '/') return path // Absolute path
+    else if (path.startsWith(this.#basePath)) return path
     else return `${this.#basePath}/${path}`
   }
 
@@ -128,7 +126,7 @@ export class HDF5IO {
     // Set the correct file scope (relative to cwd)
     if (globalThis.process) {
       const cwd = process.cwd()
-      const withSlash = this._convertPath(path) // set latest path with slash
+      const withSlash = (path[0] === '/') ? path : `/${path}` // Absolute path
       this.#basePath = (withSlash === path) ? withSlash : `${cwd}${withSlash}` // Full path in local filesystem (absolute and relative)
       this.#ensureParentExists() // Ensure immediately to initialize the filesystem
       this.#resolveFilesystem(true)
@@ -136,7 +134,7 @@ export class HDF5IO {
     }
 
 
-    this.#path = path = this._convertPath(path) // set latest path
+    this.#path = path = this.#convertPath(path) // set latest path
 
     // Waits for filesystem operations to complete
     return new Promise(async resolve => {
@@ -251,7 +249,7 @@ export class HDF5IO {
   }
 
   list = async (path: string = this.#path) => {
-    path = this._convertPath(path)
+    path = this.#convertPath(path)
 
     // Correction for bundled Node.js distribution
     if (globalThis.process) {
@@ -478,7 +476,7 @@ export class HDF5IO {
     const tick = performance.now()
     await this.#h5.ready
     const fs = this.#h5.FS as any
-    const path = this._convertPath(name)
+    const path = this.#convertPath(name)
 
     try {
       // if (globalThis.process) polyfills.fs.writeFileSync(path, new Uint8Array(ab));
@@ -635,6 +633,7 @@ export class HDF5IO {
     if (isRemote) return this.fetch(path, options.filename, options)
 
     let file = await this.get(path) //, { useLocalStorage: options.useLocalStorage })
+    
     if (this.#fileFound(file)) {
 
       const resolved = file as ResolvedFileObject
@@ -679,7 +678,9 @@ export class HDF5IO {
 
       return resolved.file
 
-    }
+    } 
+    
+    else console.error(`[hdf5-io: Could not find ${path} ]`)
   }
 
   // Get File by Name
@@ -697,9 +698,6 @@ export class HDF5IO {
       clear
     } = options
 
-    // if (!useLocalStorage) useLocalStorage = true
-
-    if (!path) throw new Error(`[hdf5-io]: Invalid file name ${path}`)
     let o = this.files.get(path)
 
     if (!o) {
@@ -714,13 +712,15 @@ export class HDF5IO {
     if (clear) await this.#write(path) // Clear the existing file if setting a new one
 
 
-    const filepath = globalThis.process ? this._convertPath(path) : path
+    const filepath = globalThis.process ? this.#convertPath(path) : path
+    console.log('LADING FILE', filepath)
 
     // Resolve a file reader
     try {
       const fs = this.#h5.FS as any
       fs.lookupPath(filepath, {}) // Will throw a silent error if doesn't exist
       
+      console.log('LADING FILE', filepath)
       const reader = new this.#h5.File(filepath, mode); // Start by reading
       if (!this.#fileFound) throw new Error(`[hdf5-io]: Could not open file ${filepath}`)
       else resolved.reader = reader
