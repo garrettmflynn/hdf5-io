@@ -3,6 +3,7 @@
 node_modules
 _bundles
 docs/docs/reference
+files
 
 # Library Builds
 **/dist

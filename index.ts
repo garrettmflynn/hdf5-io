@@ -1,16 +1,16 @@
-import HDF5IO from "./src/index";
-// import HDF5IO from "./dist/index.es";
+const postprocess = (object: any) => object // Modify HDF5 file object before returning
+const debug = true
 
-// // Get IO Object from the Script Tag
-// const HDF5IO = hdf5.default
+// import HDF5IO from "./src/index";
+// // import HDF5IO from "./dist/index.es";
+const HDF5IO = hdf5.default
+const io = new HDF5IO({ postprocess, debug })
 
 import * as visualscript from 'visualscript'
 
 // Initialize HDF5IO Instance
-const io = new HDF5IO({
-    postprocess: (object: any) => object, // Modify HDF5 file object before returning
-    debug: true
-})
+await io.initFS('/hdf5-test') // Will hang without initializing
+io.load('nothing')
 
 let editor = new visualscript.ObjectEditor({ readOnly: true})
 
@@ -19,6 +19,13 @@ const uploadButton = document.getElementById('upload') as HTMLButtonElement
 uploadButton.onclick = async () => {
     file = await io.load()
     editor.set(file)
+}
+
+const saveButton = document.getElementById('save') as HTMLButtonElement
+saveButton.onclick = () => {
+    if (file) {
+        io.save(file)
+    }
 }
 
 const downloadButton = document.getElementById('download') as HTMLButtonElement
@@ -37,6 +44,21 @@ downloadButton.onclick = async () => {
         await io.download(file)
     }
 }
+
+const savedList = document.querySelector('ul') as HTMLUListElement
+const files = await io.list()
+console.log(files)
+const items = files.map(str => {
+    const li = document.createElement('li')
+    li.textContent = str
+    li.onclick = async () => {
+        file = await io.load(str)
+        editor.set(file)
+    }
+    return li
+})
+
+savedList.append(...items)
 
 // const url = 'https://api.dandiarchive.org/api/assets/29ba1aaf-9091-469a-b331-6b8ab818b5a6/download/'
 // io.read(url, { useStreaming: true }).then(async (file) => {
@@ -83,18 +105,27 @@ document.body.insertAdjacentElement('beforeend', editor)
 
 let results_el = document.getElementById("results");
 
-const load = document.getElementById("load")
+const stream = document.getElementById("stream")
+const download = document.getElementById("downloadURL")
+
 const fileUrl = document.getElementById("file_url") as HTMLInputElement
 const size = document.getElementById("LRUSize")  as HTMLInputElement
 const chunk = document.getElementById("requestChunkSize") as HTMLInputElement
 
 let lastURL
 
-if (load && fileUrl && size && chunk) load.onclick = function() {
+if (stream && fileUrl && size && chunk) stream.onclick = function() {
     const url = lastURL = fileUrl.value;
     let LRUSize = parseInt(size.value, 10);
     let requestChunkSize = parseInt(chunk.value, 10);
     io.stream(url, { LRUSize, requestChunkSize }).then((file) => {
+        editor.set(file)
+    })
+}
+
+if (download && fileUrl) download.onclick = function() {
+    const url = lastURL = fileUrl.value;
+    io.load(url).then((file) => {
         editor.set(file)
     })
 }

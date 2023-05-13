@@ -1,4 +1,4 @@
-import { isStreaming } from '../globals'
+import { isStreaming } from '../symbols'
 import { Callbacks } from '../types'
 import * as global from './global'
 

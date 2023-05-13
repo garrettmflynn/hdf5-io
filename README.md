@@ -62,15 +62,7 @@ const object = {
 ```
 
 ## Known Issues
-- Using this library again with Vite will require you to specify `hdf5-io` as excluded from the optimized dependencies: 
-```javascript
-// vite.config.js
-export default defineConfig({
-    optimizeDeps: {
-        exclude: ['hdf5-io']
-    }
-})
-```
+-  Bundling h5wasm breaks all Node.js file manipulation code, to the point where you can't load an existing file
 
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).

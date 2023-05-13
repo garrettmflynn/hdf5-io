@@ -2,7 +2,7 @@
 // ------------ Get All Property Names ------------
 
 import { ArbitraryObject } from "../types";
-import { isBigInt } from "../globals";
+import { isBigInt } from "../symbols";
 
 const rawProperties: ArbitraryObject = {}
 const globalObjects = [

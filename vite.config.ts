@@ -23,14 +23,14 @@ export default defineConfig({
         external: [
           "node:buffer",
           "node:fs",
-          "web-worker"
+          "web-worker",
+          // 'h5wasm'
         ],
     }
   },
 
   test: {
     environment: 'jsdom',
-    testTimeout: 10000,
     threads: false
   },
 
