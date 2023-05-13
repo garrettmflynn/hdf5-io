@@ -23,8 +23,8 @@ export default defineConfig({
         external: [
           "node:buffer",
           "node:fs",
-          "web-worker",
-          // 'h5wasm'
+          "web-worker", // Currently not working in Node.js either way
+          // 'h5wasm' // Works on browser but not on Node.js
         ],
     }
   },

@@ -479,8 +479,6 @@ export class HDF5IO {
     const path = this.#convertPath(name)
 
     try {
-      // if (globalThis.process) polyfills.fs.writeFileSync(path, new Uint8Array(ab));
-      // else 
       await fs.writeFile(globalThis.process ? path : name, new Uint8Array(ab));
     } catch (e) {
       console.error(`[hdf5-io]: Failed to write file to path ${path} to FS`, e)
@@ -713,14 +711,11 @@ export class HDF5IO {
 
 
     const filepath = globalThis.process ? this.#convertPath(path) : path
-    console.log('LADING FILE', filepath)
 
     // Resolve a file reader
     try {
       const fs = this.#h5.FS as any
       fs.lookupPath(filepath, {}) // Will throw a silent error if doesn't exist
-      
-      console.log('LADING FILE', filepath)
       const reader = new this.#h5.File(filepath, mode); // Start by reading
       if (!this.#fileFound) throw new Error(`[hdf5-io]: Could not open file ${filepath}`)
       else resolved.reader = reader

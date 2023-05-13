@@ -62,7 +62,9 @@ const object = {
 ```
 
 ## Known Issues
--  Bundling h5wasm breaks all Node.js file manipulation code, to the point where you can't load an existing file
+- Files that previous could be streamed (e.g. https://dandiarchive.s3.amazonaws.com/blobs/aff/5f6/aff5f64d-9a69-4ff3-a6fe-13a3f30dca50) no longer work
+- Node.js doesn't work when bundled—unless you manually provide a `h5wasm` instance
+- Streaming doesn't work in Node.js
 
 ## Acknowledgments
 **hdf5-io** was originally prototyped by [Garrett Flynn](https;//github.com/garrettmflynn) as the [**WebNWB**](https;//github.com/brainsatplay/WebNWB) project at the [2022 NWB-DANDI Remote Developer Hackathon](https://neurodatawithoutborders.github.io/nwb_hackathons/HCK12_2022_Remote/).

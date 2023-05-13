@@ -1,8 +1,4 @@
-// NOTE: These are only provisional tests to ensure that the library is working in Node.js. 
-// They will be replaced with more comprehensive tests in the future.
-
 import fs from 'fs'
-import process from 'process'
 import { beforeAll, describe, expect, test } from 'vitest';
 
 import * as hdf5 from '../src/index';
