@@ -10,7 +10,7 @@ export type FileProxyOptions = {
 }
 
 
-const defaultRequestChunkSize = 1024
+const defaultRequestChunkSize = 10 // 1024 
 const defaultLRUSize = 100
 
 class FileProxy {

@@ -52,7 +52,7 @@ const carryAllProperties = (target: any, source: any, configure?: string[] | boo
 
 type FetchOptions = {
   // useLocalStorage?: boolean | FileProxyOptions,
-  useStreaming?: boolean,
+  useStreaming?: boolean | FileProxyOptions,
 } & Callbacks
 
 type UploadOptions = {
